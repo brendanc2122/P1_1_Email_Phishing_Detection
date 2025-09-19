@@ -1,0 +1,206 @@
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f6f8fa;
+    margin: 0;
+    padding: 0;
+}
+
+/* Main container for layout */
+.container {
+    display: flex;
+    max-width: 1100px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    overflow: hidden;
+}
+
+/* Left panel: form */
+.detector-panel, .result-panel {
+    padding: 32px 28px;
+    flex: 1;
+}
+
+/* Divider between panels */
+.detector-panel {
+    border-right: 1px solid #e5e7eb;
+    min-width: 380px;
+}
+
+/* Right panel: results */
+.result-panel {
+    background: #f9fafb;
+    min-width: 340px;
+}
+
+/* Headings */
+h2 {
+    margin-top: 0;
+    font-size: 1.6rem;
+    color: #222;
+}
+
+/* Description text */
+.desc {
+    color: #555;
+    font-size: 1rem;
+    margin-bottom: 24px;
+}
+
+/* Form labels and hints */
+.email-form label {
+    display: block;
+    margin-top: 18px;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #333;
+}
+.email-form .hint {
+    font-size: 0.95em;
+    color: #888;
+    margin-left: 4px;
+}
+
+/* Input and textarea styling */
+.email-form input[type="text"],
+.email-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    background: #fff;
+    margin-bottom: 6px;
+    transition: border 0.2s;
+}
+.email-form input[type="text"]:focus,
+.email-form textarea:focus {
+    border-color: #6366f1;
+    outline: none;
+}
+.email-form textarea {
+    resize: vertical;
+}
+
+/* Action buttons and threshold slider group */
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0 10px 0;
+    flex-wrap: wrap;
+}
+
+/* Analyze button styling */
+.analyze-btn {
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+.analyze-btn:hover {
+    background: #4f46e5;
+}
+
+/* Copy and download buttons */
+.copy-btn, .download-btn {
+    background: #fff;
+    color: #6366f1;
+    border: 1px solid #6366f1;
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s, color 0.2s;
+}
+.copy-btn:hover, .download-btn:hover {
+    background: #6366f1;
+    color: #fff;
+}
+
+/* Threshold slider group */
+.threshold-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.threshold-group label {
+    margin: 0;
+    font-size: 0.98em;
+    color: #444;
+}
+.threshold-group input[type="range"] {
+    accent-color: #6366f1;
+    width: 90px;
+}
+#threshold-value {
+    font-weight: 600;
+    color: #6366f1;
+}
+
+/* Notes under the form */
+.notes {
+    font-size: 0.92em;
+    color: #888;
+    margin-top: 18px;
+}
+
+/* Result panel header */
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    color: #222;
+}
+.threshold-label {
+    font-size: 0.98em;
+    color: #6366f1;
+}
+
+/* Result score styling */
+.result-score {
+    font-size: 1.1em;
+    margin-bottom: 18px;
+    color: #555;
+}
+
+/* Result breakdown, score contribution, and threshold details boxes */
+.breakdown, .score-contribution, .threshold-details {
+    background: #fff;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+.breakdown h4, .score-contribution h4, .threshold-details h4 {
+    margin: 0 0 8px 0;
+    font-size: 1.05em;
+    color: #333;
+}
+.threshold-details ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.98em;
+    color: #444;
+}
+
+/* Responsive layout for smaller screens */
+@media (max-width: 900px) {
+    .container {
+        flex-direction: column;
+        max-width: 98vw;
+    }
+    .detector-panel, .result-panel {
+        min-width: unset;
+        padding: 22px 10px;
+    }
+}
