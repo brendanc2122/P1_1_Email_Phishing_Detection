@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, jsonify
+from rules import Rule
 import pandas as pd
 import numpy as np
+
+
 app = Flask(__name__)
 
 # Route for the home page
@@ -8,14 +11,10 @@ app = Flask(__name__)
 def index():
     # Render the main index.html template
     return render_template('index.html')
-# Initialize the Flask application
-app = Flask(__name__)
+x = Rule()
 
-# Route for the home page
-@app.route('/')
-def index():
-    # Render the main index.html template
-    return render_template('index.html')
+
+x.example_rule_1()
 
 # Run the Flask development server
 if __name__ == "__main__":
