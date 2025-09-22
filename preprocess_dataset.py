@@ -120,3 +120,8 @@ total_email_count = spam_count + easy_ham_count + hard_ham_count
 print((f"\nTotal number of emails: {total_email_count}"
        f"\nNumber of spam emails: {spam_count} ({spam_count/total_email_count*100:.2f}%)")
     )
+
+# Save dataframes to CSV files and add to testing_data folder
+easy_ham_df_combined.to_csv('testing_data/easy_ham.csv',mode='w',index=False)
+hard_ham_df.to_csv('testing_data/hard_ham.csv',mode='w',index=False)
+spam_df_combined.to_csv('testing_data/spam.csv',mode='w',index=False)
