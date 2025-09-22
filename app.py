@@ -6,19 +6,15 @@ import numpy as np
 
 app = Flask(__name__)
 
-x = Rule()
-
-
-x.example_rule_1()
-
-# Initialize the Flask application
-app = Flask(__name__)
-
 # Route for the home page
 @app.route('/')
 def index():
     # Render the main index.html template
     return render_template('index.html')
+x = Rule()
+
+
+x.example_rule_1()
 
 # Run the Flask development server
 if __name__ == "__main__":
