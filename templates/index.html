@@ -1,79 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phishing Email Detector</title>
-    <!-- Link to external stylesheet -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Phishing Email Detector</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <!-- Left panel: Email input form -->
-        <div class="detector-panel">
-            <h2>Phishing Email Detector</h2>
-            <p class="desc">
-                <!-- Brief instructions for the user -->
-                Paste the raw sender, subject and body of an email to analyze its phishiness score (client-side heuristic demo).
-            </p>
-            <form class="email-form">
-                <!-- Sender input -->
-                <label for="sender">Sender <span class="hint">(*Name &lt;email@domain.com&gt;*)</span></label>
-                <input type="text" id="sender" name="sender" placeholder="e.g. PayPal Support &lt;service@paypal.com&gt;" required>
+  <div class="container">
+    <!-- Left: input -->
+    <div class="detector-panel">
+      <h2>Phishing Email Detector</h2>
+      <p class="desc">
+        Paste the sender, subject, and body of an email. We’ll score it with rule-based checks server-side and show a normalized 0–100 score.
+      </p>
 
-                <!-- Subject input -->
-                <label for="subject">Subject</label>
-                <input type="text" id="subject" name="subject" placeholder="e.g. Urgent: Verify your account" required>
+      <form class="email-form">
+        <label for="sender">Sender <span class="hint">(*Name &lt;email@domain.com&gt;*)</span></label>
+        <input type="text" id="sender" name="sender" placeholder="e.g. PayPal Support &lt;service@paypal.com&gt;" required>
 
-                <!-- Body input -->
-                <label for="body">Body</label>
-                <textarea id="body" name="body" rows="6" placeholder="Paste the email body here..." required></textarea>
+        <label for="subject">Subject</label>
+        <input type="text" id="subject" name="subject" placeholder="e.g. URGENT: Verify your account" required>
 
-                <!-- Action buttons and threshold slider -->
-                <div class="actions">
-                    <button type="submit" class="analyze-btn">Analyze</button>
-                    <div class="threshold-group">
-                        <label for="threshold">Threshold</label>
-                        <input type="range" id="threshold" name="threshold" min="0" max="100" value="60">
-                        <span id="threshold-value">60</span>
-                    </div>
-                    <button type="button" class="copy-btn">Copy report</button>
-                    <button type="button" class="download-btn">Download</button>
-                </div>
-                <!-- Notes for users -->
-                <p class="notes">
-                    Notes: This is a front-end heuristic demo. For production use, run analysis server-side and combine with ML models and threat intelligence feeds.
-                </p>
-            </form>
+        <label for="body">Body</label>
+        <textarea id="body" name="body" rows="7" placeholder="Paste the email body here..." required></textarea>
+
+        <div class="actions">
+          <button type="submit" class="analyze-btn">Analyze</button>
+
+          <div class="threshold-group">
+            <label for="threshold">Threshold</label>
+            <input type="range" id="threshold" name="threshold" min="0" max="100" value="60">
+            <span id="threshold-value">60</span>
+          </div>
+
+          <button type="button" class="copy-btn">Copy report</button>
+          <button type="button" class="download-btn">Download</button>
         </div>
-        <!-- Right panel: Results and details -->
-        <div class="result-panel">
-            <div class="result-header">
-                <span>Result</span>
-                <span class="threshold-label">Threshold: <span id="result-threshold">60</span></span>
-            </div>
-            <div class="result-score">
-                <span class="score-label">No analysis yet</span>
-            </div>
-            <div class="breakdown">
-                <h4>Breakdown (indicators)</h4>
-                <p>No details yet — click Analyze.</p>
-            </div>
-            <div class="score-contribution">
-                <h4>Score contribution</h4>
-                <p>No chart data — analyze an email to view contributions.</p>
-            </div>
-            <div class="threshold-details">
-                <h4>Threshold details</h4>
-                <ul>
-                    <li><b>Below 60:</b> Treated as <b>likely legitimate</b> (low risk).</li>
-                    <li><b>At or above 60:</b> Treated as <b>phishy</b> (requires further review / block).</li>
-                    <li>Adjust the threshold to make the detector more/less strict. Production systems combine ML + threat intel.</li>
-                </ul>
-            </div>
-        </div>
+
+        <p class="notes">
+          Rules used: whitelist check, suspicious keywords (subject & early-body bonuses), lookalike domains, and suspicious URLs (IP or brand mismatch).
+        </p>
+      </form>
     </div>
-    <!-- Script for interactivity (threshold slider, etc.) -->
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <!-- Right: results -->
+    <div class="result-panel">
+      <div class="result-header">
+        <span>Result</span>
+        <span class="threshold-label">Threshold: <span id="result-threshold">60</span></span>
+      </div>
+
+      <div class="result-score">
+        <span class="score-label">No analysis yet</span>
+      </div>
+
+      <div class="breakdown">
+        <h4>Breakdown (indicators)</h4>
+        <p>No details yet — click Analyze.</p>
+      </div>
+
+      <div class="score-contribution">
+        <h4>Score contribution</h4>
+        <p>No data yet — analyze an email to view contributions.</p>
+      </div>
+
+      <div class="threshold-details">
+        <h4>Threshold details</h4>
+        <ul>
+          <li><b>UI threshold</b> (0–100) is converted to raw points internally (≈ 0–{{ 30 if false else 30 }} by default).</li>
+          <li>Below threshold → <b>Safe</b>. At/above threshold → <b>Phishing</b>.</li>
+          <li>Tune later using your labeled dataset for best precision/recall.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
