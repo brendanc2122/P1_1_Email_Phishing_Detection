@@ -4,33 +4,32 @@ import numpy as np
 import re
 from email import parser
 
-def create_dataframe_from_group(category):
-# category: easy_ham, easy_ham_2, hard_ham, spam, spam_2
-    path = f'spamassassin_corpus/{category}'
+def create_dataframe_from_group(uploaded_files_list):
+    path = 'uploads'
 
     def get_raw_emails():
         raw_emails = []
         
-        try:
-            files_list = os.listdir(path)
-        except Exception as e:
-            print(f"Error reading database {category}: {e}")
-            return
+        # try:
+        #     files_list = os.listdir(path)
+        # except Exception as e:
+        #     print(f"Error reading database: {e}")
+        #     return
 
 
-        for file_path in files_list:
-            if file_path is not None and file_path != "cmds":
+        for file_name in uploaded_files_list:
+            if file_name is not None and file_name != "cmds":
                 # For some reason some of the datasets have this file called "cmds" that
                 # is just leftover commands to move the files to their respective category.
                 # It is not an email so I don't read it
                 try:
-                    with open(f'spamassassin_corpus/{category}/{file_path}', encoding='latin-1') as f:
+                    with open(f'{path}/{file_name}', encoding='latin-1') as f:
                         raw_email_content = f.read()
                         raw_emails.append(raw_email_content)
                 except FileNotFoundError:
-                    print(f"Error: File not found at {file_path}")
+                    print(f"Error: File not found at {file_name}")
                 except Exception as e:
-                    print(f"Error reading file {file_path}: {e}")
+                    print(f"Error reading file {file_name}: {e}")
 
         return raw_emails
     
@@ -82,8 +81,12 @@ def create_dataframe_from_group(category):
         'body': bodies
     })
 
+    # Save the pandas DataFrame to a CSV file
+    df_emails.to_csv('csv_files/user_data.csv',mode='w',index=False)
+    
     return df_emails
 
+'''
 # Dataframe for spam
 spam_df = create_dataframe_from_group('spam')
 spam_2_df = create_dataframe_from_group('spam_2')
@@ -125,3 +128,10 @@ print((f"\nTotal number of emails: {total_email_count}"
 easy_ham_df_combined.to_csv('testing_data/easy_ham.csv',mode='w',index=False)
 hard_ham_df.to_csv('testing_data/hard_ham.csv',mode='w',index=False)
 spam_df_combined.to_csv('testing_data/spam.csv',mode='w',index=False)
+'''
+
+'''
+def make from test data (spamassassin_corpus):
+    spam_df = makedataframefromgroup(spamassasssin path)
+    print(spam_df.head())
+'''

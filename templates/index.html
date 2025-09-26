@@ -12,37 +12,30 @@
     <div class="detector-panel">
       <h2>Phishing Email Detector</h2>
       <p class="desc">
-        Paste the sender, subject, and body of an email. We’ll score it with rule-based checks server-side and show a normalized 0–100 score.
+        Upload a text or email file for phishing analysis
       </p>
 
-      <form class="email-form">
-        <label for="sender">Sender <span class="hint">(*Name &lt;email@domain.com&gt;*)</span></label>
-        <input type="text" id="sender" name="sender" placeholder="e.g. PayPal Support &lt;service@paypal.com&gt;" required>
+      <form id="upload_form" method="POST" action="http://127.0.0.1:5000/upload" enctype="multipart/form-data">
+        <input type="file" name="files[]" multiple>
+        <input type="submit" value="Upload">
+      </form>
 
-        <label for="subject">Subject</label>
-        <input type="text" id="subject" name="subject" placeholder="e.g. URGENT: Verify your account" required>
+      <!-- New: Preprocess file upload form -->
+      <!-- <form method="POST" id="preprocess-form" enctype="multipart/form-data" style="margin-bottom: 1em;">
+        <label for="preprocess-file">Upload Samples For Analysis:</label>
+        <input type="file" id="preprocess-file" name="files[]" multiple accept=".txt"required>
+        <input type="submit" value="Upload">
+        <button type="submit" value="Upload">Preprocess</button>
+        <span id="preprocess-status"></span>
+      </form> -->
 
-        <label for="body">Body</label>
-        <textarea id="body" name="body" rows="7" placeholder="Paste the email body here..." required></textarea>
-
-        <div class="actions">
-          <button type="submit" class="analyze-btn">Analyze</button>
-
-          <div class="threshold-group">
-            <label for="threshold">Threshold</label>
-            <input type="range" id="threshold" name="threshold" min="0" max="100" value="60">
-            <span id="threshold-value">60</span>
-          </div>
+      <!-- <form class="email-form">
 
           <button type="button" class="copy-btn">Copy report</button>
           <button type="button" class="download-btn">Download</button>
         </div>
-
-        <p class="notes">
-          Rules used: whitelist check, suspicious keywords (subject & early-body bonuses), lookalike domains, and suspicious URLs (IP or brand mismatch).
-        </p>
       </form>
-    </div>
+    </div> -->
 
     <!-- Right: results -->
     <div class="result-panel">
@@ -77,5 +70,63 @@
   </div>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+  // filepath: c:\Users\brend\P1_1_Email_Phishing_Detection\static\script.js
+  // ...existing code...
+
+  // Preprocess file upload
+  // document.getElementById('preprocess-form').addEventListener('submit', async function(e) {
+  //   e.preventDefault();
+  //   const fileInput = document.getElementById('preprocess-file');
+  //   const statusSpan = document.getElementById('preprocess-status');
+  //   statusSpan.textContent = 'Uploading...';
+
+  //   const formData = new FormData();
+  //   formData.append('file', fileInput.files[0]);
+
+  //   try {
+  //     const response = await fetch('/preprocess', {
+  //       method: 'POST',
+  //       body: formData
+  //     });
+  //     const result = await response.json();
+  //     if (result.status === 'success') {
+  //       statusSpan.textContent = 'Preprocessing completed!';
+  //     } else {
+  //       statusSpan.textContent = 'Error: ' + (result.message || 'Unknown error');
+  //     }
+  //   } catch (err) {
+  //     statusSpan.textContent = 'Error: ' + err.message;
+  //   }
+  // });
+
+  // Email analyze form (existing, but ensure it uses fetch and updates UI)
+  document.querySelector('.email-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const sender = document.getElementById('sender').value;
+    const subject = document.getElementById('subject').value;
+    const body = document.getElementById('body').value;
+    const threshold = document.getElementById('threshold').value;
+
+    const response = await fetch('/analyze', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ sender, subject, body, threshold })
+    });
+    const result = await response.json();
+
+    // Update result UI (implement as needed)
+    document.querySelector('.result-score .score-label').textContent =
+      result.score !== undefined ? `Score: ${result.score}` : 'No analysis yet';
+    document.getElementById('result-threshold').textContent = threshold;
+    // ...update breakdown, contributions, etc...
+  });
+
+  // Threshold slider update
+  document.getElementById('threshold').addEventListener('input', function() {
+    document.getElementById('threshold-value').textContent = this.value;
+    document.getElementById('result-threshold').textContent = this.value;
+  });
+  </script>
 </body>
 </html>

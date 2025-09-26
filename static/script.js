@@ -67,49 +67,39 @@ async function analyzeEmail(e) {
 
 if (form) form.addEventListener('submit', analyzeEmail);
 
+// --- Preprocess file upload ---
+const preprocessForm = document.getElementById('preprocess-form');
+if (preprocessForm) {
+  preprocessForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById('preprocess-file');
+    const statusSpan = document.getElementById('preprocess-status');
+    statusSpan.textContent = 'Uploading...';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        statusSpan.textContent = 'Preprocessing completed!';
+      } else {
+        statusSpan.textContent = 'Error: ' + (result.message || 'Unknown error');
+      }
+    } catch (err) {
+      statusSpan.textContent = 'Error: ' + err.message;
+    }
+  });
+}
 
 // --- Copy report ---
 const copyBtn = document.querySelector('.copy-btn');
 if (copyBtn) {
   copyBtn.addEventListener('click', async () => {
-    const form = document.querySelector('.email-form');
-
-if (form) {
-  form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const sender = document.getElementById('sender').value;
-  const subject = document.getElementById('subject').value;
-  const body = document.getElementById('body').value;
-  const threshold = Number(document.getElementById('threshold').value);
-
-  const res = await fetch('/analyze', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sender, subject, body, threshold })
-  });
-  const data = await res.json();
-
-  // --- existing score update ---
-  const scoreLabel = document.querySelector('.score-label');
-  if (scoreLabel) {
-    scoreLabel.textContent =
-      `Score: ${data.normalized_score}/100 (raw: ${data.raw_score}) — ${data.label}`;
-    scoreLabel.style.fontWeight = 'bold';
-    scoreLabel.style.color = (data.label === 'Phishing') ? '#b91c1c' : '#15803d';
-  }
-
-  // --- NEW: show threshold both ways ---
-  const resultThreshold = document.getElementById('result-threshold');
-  if (resultThreshold) {
-    resultThreshold.textContent = `${data.threshold_ui}% (≈${data.threshold_raw} pts)`;
-  }
-
-  // … breakdown & contrib code …
-});
-
-}
-
     const scoreLabel = document.querySelector('.score-label')?.textContent ?? '';
     const breakdown = document.querySelector('.breakdown')?.innerText ?? '';
     const contrib = document.querySelector('.score-contribution')?.innerText ?? '';
