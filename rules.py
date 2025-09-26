@@ -37,7 +37,7 @@ from difflib import SequenceMatcher
 import math
 
 # --- Tunables (move to config.py later if you want) ---
-SUSPICIOUS_KEYWORDS = {
+SUSPICIOUS_KEYWORDS ={
     "urgent": 3, "verify": 3, "account": 2, "password": 3, "gift": 2,
     "login": 2, "security": 2, "click": 2, "update": 2, "invoice": 2
 }
