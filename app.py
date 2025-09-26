@@ -1,21 +1,74 @@
 from flask import Flask, render_template, request, jsonify
 from rules import Rule
-import pandas as pd
-import numpy as np
-
+import os
+from preprocess_dataset import create_dataframe_from_group
 
 app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Route for the home page
-@app.route('/')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+engine = Rule()  # you can pass custom weights or default_threshold_raw here
+
+@app.get("/")
 def index():
-    # Render the main index.html template
-    return render_template('index.html')
-x = Rule()
+    return render_template("index.html")
 
+'''@app.post("/preprocess")
+def preprocess():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part in the request."}), 400
 
-x.example_rule_1()
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No selected file."}), 400
 
-# Run the Flask development server
+    # Save the file to a temporary location or process it directly
+    temp_path = f"./tmp_{file.filename}"
+    file.save(temp_path)
+
+    output_path = request.form.get("output_path", "")
+    preprocess_dataset.preprocess(temp_path, output_path)
+
+    # Optionally, remove the temp file after processing
+    # os.remove(temp_path)
+
+    return jsonify({"status": "success", "message": "Preprocessing completed."})'''
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload():
+    if request.method == "POST":
+        if 'files[]' not in request.files:
+            return jsonify({"status": "error", "message": "No file part in the request."}), 400
+        
+        files = request.files.getlist("files[]")
+
+        uploaded_files = []
+        for file in files:
+            if file.filename == '':
+                continue    # Skip empty filenames
+            if file:
+                filename = file.filename
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                uploaded_files.append(filename)
+                print("file uploaded successfully")
+
+        user_dataframe = create_dataframe_from_group(uploaded_files)
+        print(user_dataframe.head())  # Print the first few rows of the DataFrame for verification
+            
+        return index.html # Return the DataFrame as response
+
+@app.post("/analyze")
+def analyze():
+    data = request.get_json(silent=True) or request.form
+    sender   = data.get("sender", "")
+    subject  = data.get("subject", "")
+    body     = data.get("body", "")
+    threshold = data.get("threshold")  # UI slider value (0–100) or raw
+    result = engine.evaluate(sender, subject, body, threshold=threshold)
+    return jsonify(result)
+
 if __name__ == "__main__":
     app.run(debug=True)

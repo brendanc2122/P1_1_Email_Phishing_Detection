@@ -1,91 +1,129 @@
-// --- Threshold slider: update value in real-time ---
+// --- sync threshold slider to labels ---
 const thresholdInput = document.getElementById('threshold');
 const thresholdValue = document.getElementById('threshold-value');
 const resultThreshold = document.getElementById('result-threshold');
 
+function syncThresholdLabels(v) {
+  if (thresholdValue) thresholdValue.textContent = v;
+  if (resultThreshold) resultThreshold.textContent = v;
+}
 if (thresholdInput) {
-    thresholdInput.addEventListener('input', function() {
-        thresholdValue.textContent = this.value;
-        if (resultThreshold) resultThreshold.textContent = this.value;
-    });
+  syncThresholdLabels(thresholdInput.value);
+  thresholdInput.addEventListener('input', (e) => syncThresholdLabels(e.target.value));
 }
 
-// --- Prevent form submission and show demo result ---
+// --- form submit -> call backend /analyze ---
 const form = document.querySelector('.email-form');
-if (form) {
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        // Generate a random score for demo purposes
-        const score = Math.floor(Math.random() * 100);
-        const scoreLabel = document.querySelector('.score-label');
-        const breakdown = document.querySelector('.breakdown');
-        const scoreContribution = document.querySelector('.score-contribution');
-        if (scoreLabel) {
-            scoreLabel.textContent = `Score: ${score} — ${score >= thresholdInput.value ? 'Phishy' : 'Likely Legitimate'}`;
-            scoreLabel.style.fontWeight = 'bold';
-            scoreLabel.style.color = score >= thresholdInput.value ? '#b91c1c' : '#15803d';
-        }
-        // Show fake breakdown indicators
-        if (breakdown) {
-            breakdown.innerHTML = `
-                <h4>Breakdown (indicators)</h4>
-                <ul>
-                    <li>Suspicious sender: ${Math.random() > 0.5 ? 'Yes' : 'No'}</li>
-                    <li>Urgent language: ${Math.random() > 0.5 ? 'Yes' : 'No'}</li>
-                    <li>Links detected: ${Math.floor(Math.random() * 3)}</li>
-                </ul>
-            `;
-        }
-        // Show fake score contribution
-        if (scoreContribution) {
-            scoreContribution.innerHTML = `
-                <h4>Score contribution</h4>
-                <ul>
-                    <li>Sender: ${Math.floor(Math.random() * 30)}</li>
-                    <li>Subject: ${Math.floor(Math.random() * 30)}</li>
-                    <li>Body: ${Math.floor(Math.random() * 40)}</li>
-                </ul>
-            `;
-        }
-    });
+
+async function analyzeEmail(e) {
+  e.preventDefault();
+  const sender = document.getElementById('sender').value;
+  const subject = document.getElementById('subject').value;
+  const body = document.getElementById('body').value;
+  const threshold = Number(document.getElementById('threshold').value);
+
+  const res = await fetch('/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sender, subject, body, threshold })
+  });
+  const data = await res.json();
+
+  // Update UI
+  const scoreLabel = document.querySelector('.score-label');
+  const breakdown = document.querySelector('.breakdown');
+  const contribBox = document.querySelector('.score-contribution');
+
+  if (scoreLabel) {
+    scoreLabel.textContent =
+      `Score: ${data.normalized_score}/100 (raw: ${data.raw_score}) — ${data.label}`;
+    scoreLabel.style.fontWeight = 'bold';
+    scoreLabel.style.color = (data.label === 'Phishing') ? '#b91c1c' : '#15803d';
+  }
+
+  if (breakdown) {
+    const items = (data.reasons || []).map(r => `<li>${r}</li>`).join('');
+    breakdown.innerHTML = `
+      <h4>Breakdown (indicators)</h4>
+      <ul>${items || '<li>No indicators</li>'}</ul>
+    `;
+  }
+
+  if (contribBox) {
+    const contrib = data.contrib || {};
+    const items = Object.entries(contrib).map(([k, v]) => `<li>${k}: ${v}</li>`).join('');
+    contribBox.innerHTML = `
+      <h4>Score contribution</h4>
+      <ul>${items || '<li>No contributions</li>'}</ul>
+    `;
+  }
+
+  // reflect the threshold the backend actually used (UI %)
+  if (typeof data.threshold_ui === 'number') {
+    syncThresholdLabels(data.threshold_ui);
+    if (thresholdInput) thresholdInput.value = data.threshold_ui;
+  }
 }
 
-// --- Copy report to clipboard ---
+if (form) form.addEventListener('submit', analyzeEmail);
+
+// --- Preprocess file upload ---
+const preprocessForm = document.getElementById('preprocess-form');
+if (preprocessForm) {
+  preprocessForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById('preprocess-file');
+    const statusSpan = document.getElementById('preprocess-status');
+    statusSpan.textContent = 'Uploading...';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        statusSpan.textContent = 'Preprocessing completed!';
+      } else {
+        statusSpan.textContent = 'Error: ' + (result.message || 'Unknown error');
+      }
+    } catch (err) {
+      statusSpan.textContent = 'Error: ' + err.message;
+    }
+  });
+}
+
+// --- Copy report ---
 const copyBtn = document.querySelector('.copy-btn');
 if (copyBtn) {
-    copyBtn.addEventListener('click', function() {
-        const scoreLabel = document.querySelector('.score-label');
-        const breakdown = document.querySelector('.breakdown');
-        const scoreContribution = document.querySelector('.score-contribution');
-        let text = '';
-        if (scoreLabel) text += scoreLabel.textContent + '\n';
-        if (breakdown) text += breakdown.innerText + '\n';
-        if (scoreContribution) text += scoreContribution.innerText + '\n';
-        navigator.clipboard.writeText(text.trim());
-        copyBtn.textContent = 'Copied!';
-        setTimeout(() => { copyBtn.textContent = 'Copy report'; }, 1200);
-    });
+  copyBtn.addEventListener('click', async () => {
+    const scoreLabel = document.querySelector('.score-label')?.textContent ?? '';
+    const breakdown = document.querySelector('.breakdown')?.innerText ?? '';
+    const contrib = document.querySelector('.score-contribution')?.innerText ?? '';
+    const text = `${scoreLabel}\n\n${breakdown}\n\n${contrib}`.trim();
+    await navigator.clipboard.writeText(text);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => (copyBtn.textContent = 'Copy report'), 1200);
+  });
 }
 
-// --- Download report as a text file ---
+// --- Download report ---
 const downloadBtn = document.querySelector('.download-btn');
 if (downloadBtn) {
-    downloadBtn.addEventListener('click', function() {
-        const scoreLabel = document.querySelector('.score-label');
-        const breakdown = document.querySelector('.breakdown');
-        const scoreContribution = document.querySelector('.score-contribution');
-        let text = '';
-        if (scoreLabel) text += scoreLabel.textContent + '\n';
-        if (breakdown) text += breakdown.innerText + '\n';
-        if (scoreContribution) text += scoreContribution.innerText + '\n';
-        const blob = new Blob([text.trim()], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'phishing_report.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    });
+  downloadBtn.addEventListener('click', () => {
+    const scoreLabel = document.querySelector('.score-label')?.textContent ?? '';
+    const breakdown = document.querySelector('.breakdown')?.innerText ?? '';
+    const contrib = document.querySelector('.score-contribution')?.innerText ?? '';
+    const text = `${scoreLabel}\n\n${breakdown}\n\n${contrib}`.trim();
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), { href: url, download: 'phishing_report.txt' });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
 }
