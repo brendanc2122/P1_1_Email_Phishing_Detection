@@ -29,7 +29,6 @@ actions = [
 def add_points(points):
     global score        # tells Python you want to modify the global, not a local copy
     score = score + points
-    print("score now:", score)
 
 def load_whitelist(path="whitelist.json"):
     """Load whitelist domains from JSON file. Returns a set of domains (lowercased)."""
@@ -376,29 +375,29 @@ def check_typosquat_domain(domain: str,
 
         # 1) If normalization changes SLD to exactly equal brand (or brand_norm) -> flag
         if sld_raw != sld_norm and (sld_norm == b or sld_norm == b_norm):
-            pts += 15
+            pts += 30
             reasons.append(f"SLD '{sld}' equals brand '{brand}' only after homoglyph normalization (+15)")
             break
 
         # 2) Raw small edit distance (no normalization)
         dist_raw = _levenshtein_bounded(sld_raw, b, max_dist=2)
         if dist_raw == 1:
-            pts += 15
+            pts += 30
             reasons.append(f"SLD '{sld}' close to brand '{brand}' (edit distance 1) (+15)")
             break
         if dist_raw == 2 and len(b) >= 6:
-            pts += 12
+            pts += 25
             reasons.append(f"SLD '{sld}' close to brand '{brand}' (edit distance 2) (+12)")
             break
 
         # 3) Normalized distance fallback (handles rn→m, vv→w, 0→o etc.)
         dist_norm = _levenshtein_bounded(sld_norm, b_norm, max_dist=2)
         if dist_norm == 1:
-            pts += 15
+            pts += 25
             reasons.append(f"SLD '{sld}' resembles brand '{brand}' after homoglyph normalization (+15)")
             break
         if dist_norm == 2 and len(b_norm) >= 6:
-            pts += 12
+            pts += 22
             reasons.append(f"SLD '{sld}' somewhat resembles brand '{brand}' after normalization (+12)")
             break
 
@@ -513,103 +512,103 @@ def check_ip_as_domain(domain: str) -> tuple[int, str]:
     
 
 # Main function
-
 def calculate_score_domain(sender):
     WHITELIST = load_whitelist("whitelist.json")
-
+    reasons = []
+    reasons.append("Starting Domain Checks...\n")
     local, domain = split_sender(sender)
-
+    skip_more_domain = False
     # ---- EXACT MATCH CHECK (no subdomain allowed) ----
-    # If domain exactly equals a whitelist entry -> immediate exit with points = 0
+    # If domain exactly equals a whitelist entry -> immediate exit with points = 0, move on to username checks
+    print("Checking exact whitelist match...")
     if domain in WHITELIST:
         # Print a clear message and exit with success code
-        print("Exact whitelist domain match:", domain)
-        print("points = 0")
+        reasons.append(f"Exact whitelist domain match: {domain}, points added = 0.")
+        skip_more_domain = True
 
-    # If we get here, the domain is not an exact whitelist entry.
-    print("Domain is NOT an exact whitelist match:", domain)
-    add_points(5) # example penalty for non-whitelisted domain
-    # continue program: add your scoring/heuristics here
-    # e.g., compute score = analyze_sender_email(sender) ...
+    if not skip_more_domain:
+        # other domain heuristics only run when NOT whitelisted
+        # If we get here, the domain is not an exact whitelist entry.
+        reasons.append(f"Domain is NOT an exact whitelist match: {domain}, points added = 5.")
+        add_points(5) # example penalty for non-whitelisted domain
+        # continue program: add your scoring/heuristics here
+        # e.g., compute score = analyze_sender_email(sender) ...
 
-    print("Continuing with further checks...")
-    badset = load_bad_domains("phishing-domains-ACTIVE.txt")
-    if is_bad_domain(domain, badset):
-        print(f"⚠️ Domain {domain} is in the badlist!")
-        add_points(50)  # example penalty for bad domain
- 
-    print(f"✅ Domain {domain} is NOT in the badlist.")
-    print("Continuing with further checks...")
-
-    # pattern recognition
-
-    # check long domain
-    print("Check for long domain / many labels...")
-    pts, reasons = check_domain_length(domain)   
-    if pts > 0:
-        print("check completed, reasons:", reasons)
-        add_points(pts)
-    elif pts==0:
-        print("Nothing suspicious found in this checking sequence")
+        print("Check for domain blacklist Match")
+        badset = load_bad_domains("phishing-domains-ACTIVE.txt")
+        if is_bad_domain(domain, badset):
+            reasons.append(f"⚠️ Domain {domain} is in the blacklist!, points added = 50.")
+            add_points(50)  # example penalty for bad domain
     
-    print("Continuing with further checks...")
+        reasons.append(f"✅ Domain {domain} is NOT in the blacklist, points added = 0.")
 
-    # check improper brand token
-    print("Check for improper  brand token")
-    pts, reasons = check_brand_token(domain, WHITELIST)
-    if pts > 0:
-        print("check completed, reasons:", reasons)
-        add_points(pts)
-    elif pts==0:
-        print("Nothing suspicious found in this checking sequence")
+    # pattern recognition code
 
-    # Detect domains that append "action/update" tokens to brand names
-    print("Detect domains that append \"action/update\" tokens to brand names\n")
-    pts, reasons = check_brand_action_domain(domain, WHITELIST)
-    if pts > 0:
-        print("check completed, reasons:", reasons)
-        add_points(pts)
-    elif pts==0:
-        print("Nothing suspicious found in this checking sequence")
+        # check long domain
+        print("Check for long domain / many labels...")
+        pts, happy = check_domain_length(domain)   
+        if pts > 0:
+            reasons.append(f"Long domain/Excessive Labels detected:, {happy}, points added = {pts}.")
+            add_points(pts)
+        elif pts==0:
+            reasons.append("No Long Domains or Excessive Labels detectecd, points added = 0.")
+        
+        # check improper brand token
+        print("Check for improper brand token")
+        pts, happy = check_brand_token(domain, WHITELIST)
+        if pts > 0:
+            reasons.append(f"Improper Brand Token Detected: {happy}, points added = {pts}.")
+            add_points(pts)
+        elif pts==0:
+            reasons.append("No Improper Brand Token Detected, points added = 0.")
 
-    # Typosquatting (single-character change / small edits)
-    print("Check for typosquatting (single-character edits)")
-    pts, reasons = check_typosquat_domain(domain, WHITELIST)  
-    if pts > 0:
-        print("check completed, reasons:", reasons)
-        add_points(pts)
-    elif pts==0:
-        print("Nothing suspicious found in this checking sequence")
+        # Detect domains that append "action/update" tokens to brand names
+        print("Detect domains that append \"action/update\" or other Scam tokens to brand names\n")
+        pts, happy = check_brand_action_domain(domain, WHITELIST)
+        if pts > 0:
+            reasons.append(f"Scam Token appended to official brand domain detected: {happy}, points added = {pts}.")
+            add_points(pts)
+        elif pts==0:
+            reasons.append("No Scam Token appended to official brand domain detected, points added = 0.")
 
-    print("Continuing with further checks...")
-    
-    # Suspicious TLDs detection
-    print("Check for suspicious TLDs...")
-    pts, reasons  = check_suspicious_tld(domain)
-    if pts > 0:
-        print("check completed, reasons:", reasons)
-        add_points(pts)
-    elif pts==0:
-        print("Nothing suspicious found in this checking sequence")
+        # Typosquatting (single-character change / small edits)
+        print("Check for typosquatting (single-character edits)")
+        pts, happy = check_typosquat_domain(domain, WHITELIST)  
+        if pts > 0:
+            reasons.append(f"Typosquatting detected: {reasons}, points added = {pts}.")
+            add_points(pts)
+        elif pts==0:
+            reasons.append("No typosquatting detected, points added = 0.")
+        
+        # Suspicious TLDs detection
+        print("Check for suspicious Top Level Domains...")
+        pts, happy  = check_suspicious_tld(domain)
+        if pts > 0:
+            reasons.append(f"Suspicious Top Level Domain detected: {happy}, points added = {pts}.")
+            add_points(pts)
+        elif pts==0:
+            reasons.append("No suspicious Top Level Domain detected, points added = 0.")
 
-    #Many hyphens / long multi-part SLDs
-    print("Check for many hyphens / long multi-part SLDs...")
-    pts, reasons = check_hyphenated_sld(domain)
-    if pts > 0:
-        print("check completed, reasons:", reasons)
-        add_points(pts)
-    elif pts==0:
-        print("Nothing suspicious found in this checking sequence")
+        #Many hyphens / long multi-part SLDs
+        print("Check for many hyphens / long multi-part Small Level Domains")
+        pts, happy = check_hyphenated_sld(domain)
+        if pts > 0:
+            reasons.append(f"Many hyphens / long multi-part Small Level Domains detected: {happy}, points added = {pts}.")
+            add_points(pts)
+        elif pts==0:
+            reasons.append("No hyphens or long multi-part Small Level Domains detected: points added = 0.")
 
-    #Check if domain is an IP literal
-    print("Check if domain is an IP literal...")
-    pts, reasons = check_ip_as_domain(domain)
-    if pts > 0:
-        print("check completed, reasons:", reasons)
-        add_points(pts)
-    elif pts==0:
-        print("Nothing suspicious found in this checking sequence")
-    
+        #Check if domain is an IP literal
+        print("Check if domain is an IP literal")
+        pts, happy = check_ip_as_domain(domain)
+        if pts > 0:
+            reasons.append(f"IP Literal Domain detected: {happy}, points added = {pts}.")
+            add_points(pts)
+        elif pts==0:
+            print("No IP Literal Domain detected, points added = 0.")
+        
+    reasons.append("Starting Local Part Checks...\n")
+        
     return score, reasons
 
 #main function
