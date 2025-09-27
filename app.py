@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from rules import Rule
 import os
 from preprocess_dataset import create_dataframe_from_group
+import SAKETHdomainchecker as domain_check
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -56,9 +57,15 @@ def upload():
                 print("file uploaded successfully")
 
         user_dataframe = create_dataframe_from_group(uploaded_files)
-        print(user_dataframe.head())  # Print the first few rows of the DataFrame for verification
+        saketh_count = 0
+        for sender in user_dataframe["sender"]:
+            saketh_count += 1
+            saketh_points, saketh_reasons = domain_check.calculate_score_domain(sender)
+            print(f"Points for e-mail {saketh_count}: {saketh_points}")
+            print(f"Reasons for e-mail {saketh_count}: {saketh_reasons}")
+        # print(user_dataframe.head())  # Print the first few rows of the DataFrame for verification
             
-        return index.html # Return the DataFrame as response
+        return "Success" # Return the DataFrame as response
 
 @app.post("/analyze")
 def analyze():

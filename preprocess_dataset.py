@@ -33,6 +33,60 @@ def create_dataframe_from_group(uploaded_files_list):
 
         return raw_emails
     
+    def clean_body_2(body):
+        # Extract the link from <a href > element
+        body = re.sub(r'<a.+href="|">|</a>', "", body, flags=re.IGNORECASE)
+
+        # <br> and <br/> are line break elements, so we replace them with a whitespace for now
+        body = re.sub(r"<br/?>", " ", body, flags=re.IGNORECASE)
+
+        # Clear everything else
+        body = re.sub(r"<[^>]*>", "", body, flags=re.DOTALL)
+
+        # HTML elements to represent certain characters
+        body = re.sub(r"&amp;", "&", body, flags=re.IGNORECASE) # &
+        body = re.sub(r"&quot;", "'", body, flags=re.IGNORECASE) # quotes
+        body = re.sub(r"&nbsp;", " ", body, flags=re.IGNORECASE) # non-breaking space
+
+        body = re.sub(r"\s{2,}", " ", body) # Clears excess (more than 1) consecutive whitespaces
+
+        return body
+
+    def clean_body(body):
+        # To make body text more readable by the rules
+        # Cleans up excess html elements and whitespace
+        body = re.sub(r"<meta\s.+>|</?head.*>", "", body, flags=re.IGNORECASE)
+        body = re.sub(r"</?html>|</?title.*>|</?body.*>|</?p.*>|</?div.*>", "", body, flags=re.IGNORECASE)
+
+        ## Table elements
+        # body = re.sub(r"</?table.*>|</?tr>|</?td.*>|</?tbody>", "", body, flags=re.IGNORECASE)
+        #body = re.sub(r"</?tr>", "", body, flags=re.IGNORECASE)
+        #body = re.sub(r"</?td.*>", "", body, flags=re.IGNORECASE)
+
+        ## Text elements (Italics, bold, underline, font, etc.)
+        body = re.sub(r"</?i>|</?u>|</?b>|</?font.*>", "", body, flags=re.IGNORECASE)
+        #<br> and <br/> are line break elements, so we replace them with a whitespace for now
+        body = re.sub(r"<br/?>", " ", body, flags=re.IGNORECASE)
+
+        ## Image
+        # body = re.sub(R"<img[^>]*>", "", body, flags=re.IGNORECASE | re.DOTALL)
+
+        ## Extract the link from <a href > element
+        body = re.sub(r'<a.+href="|">|</a>', "", body, flags=re.IGNORECASE)
+
+        ## HTML elements to represent certain characters
+        body = re.sub(r"&amp;", "&", body, flags=re.IGNORECASE) # &
+        body = re.sub(r"&quot;", "'", body, flags=re.IGNORECASE) # quotes
+        body = re.sub(r"&nbsp;", " ", body, flags=re.IGNORECASE) # non-breaking space
+
+        ## Clear everything else encoded in < > that was not specified above
+        body = re.sub(r"<[^>]*>", "", body, flags=re.DOTALL)
+        
+        body = re.sub(r"\s{2,}", " ", body) # Clears excess (more than 1) consecutive whitespaces
+        
+        return body
+        
+    
     subjects = []
     senders = []
     bodies = []
@@ -66,7 +120,7 @@ def create_dataframe_from_group(uploaded_files_list):
                 except:
                     body = msg.get_payload(decode=True).decode('latin-1', errors='ignore')
 
-            bodies.append(body)
+            bodies.append(clean_body_2(body))
 
         except Exception as e:
             print(f"Error parsing email: {e}")
