@@ -512,20 +512,12 @@ def check_ip_as_domain(domain: str) -> tuple[int, str]:
         return 0, "not an IP literal domain"
     
 
-#main function
-if __name__ == "__main__":
+# Main function
+
+def calculate_score_domain(sender):
     WHITELIST = load_whitelist("whitelist.json")
 
-    sender = read_sender()
-    if sender is None:
-        # user cancelled
-        sys.exit(0)
-
     local, domain = split_sender(sender)
-    if local is None:
-        print("Invalid email format (missing or malformed '@').")
-        # continue program or exit as you need
-        sys.exit(1)
 
     # ---- EXACT MATCH CHECK (no subdomain allowed) ----
     # If domain exactly equals a whitelist entry -> immediate exit with points = 0
@@ -533,19 +525,18 @@ if __name__ == "__main__":
         # Print a clear message and exit with success code
         print("Exact whitelist domain match:", domain)
         print("points = 0")
-        sys.exit(0)
 
     # If we get here, the domain is not an exact whitelist entry.
     print("Domain is NOT an exact whitelist match:", domain)
     add_points(5) # example penalty for non-whitelisted domain
     # continue program: add your scoring/heuristics here
     # e.g., compute score = analyze_sender_email(sender) ...
+
     print("Continuing with further checks...")
     badset = load_bad_domains("phishing-domains-ACTIVE.txt")
     if is_bad_domain(domain, badset):
         print(f"⚠️ Domain {domain} is in the badlist!")
         add_points(50)  # example penalty for bad domain
-        sys.exit(0)
  
     print(f"✅ Domain {domain} is NOT in the badlist.")
     print("Continuing with further checks...")
@@ -618,6 +609,115 @@ if __name__ == "__main__":
         add_points(pts)
     elif pts==0:
         print("Nothing suspicious found in this checking sequence")
+    
+    return score, reasons
+
+#main function
+# if __name__ == "__main__":
+#     WHITELIST = load_whitelist("whitelist.json")
+
+#     sender = read_sender()
+#     if sender is None:
+#         # user cancelled
+#         sys.exit(0)
+
+#     local, domain = split_sender(sender)
+#     if local is None:
+#         print("Invalid email format (missing or malformed '@').")
+#         # continue program or exit as you need
+#         sys.exit(1)
+
+#     # ---- EXACT MATCH CHECK (no subdomain allowed) ----
+#     # If domain exactly equals a whitelist entry -> immediate exit with points = 0
+#     if domain in WHITELIST:
+#         # Print a clear message and exit with success code
+#         print("Exact whitelist domain match:", domain)
+#         print("points = 0")
+#         sys.exit(0)
+
+#     # If we get here, the domain is not an exact whitelist entry.
+#     print("Domain is NOT an exact whitelist match:", domain)
+#     add_points(5) # example penalty for non-whitelisted domain
+#     # continue program: add your scoring/heuristics here
+#     # e.g., compute score = analyze_sender_email(sender) ...
+#     print("Continuing with further checks...")
+#     badset = load_bad_domains("phishing-domains-ACTIVE.txt")
+#     if is_bad_domain(domain, badset):
+#         print(f"⚠️ Domain {domain} is in the badlist!")
+#         add_points(50)  # example penalty for bad domain
+#         sys.exit(0)
+ 
+#     print(f"✅ Domain {domain} is NOT in the badlist.")
+#     print("Continuing with further checks...")
+
+#     # pattern recognition
+
+#     # check long domain
+#     print("Check for long domain / many labels...")
+#     pts, reasons = check_domain_length(domain)   
+#     if pts > 0:
+#         print("check completed, reasons:", reasons)
+#         add_points(pts)
+#     elif pts==0:
+#         print("Nothing suspicious found in this checking sequence")
+    
+#     print("Continuing with further checks...")
+
+#     # check improper brand token
+#     print("Check for improper  brand token")
+#     pts, reasons = check_brand_token(domain, WHITELIST)
+#     if pts > 0:
+#         print("check completed, reasons:", reasons)
+#         add_points(pts)
+#     elif pts==0:
+#         print("Nothing suspicious found in this checking sequence")
+
+#     # Detect domains that append "action/update" tokens to brand names
+#     print("Detect domains that append \"action/update\" tokens to brand names\n")
+#     pts, reasons = check_brand_action_domain(domain, WHITELIST)
+#     if pts > 0:
+#         print("check completed, reasons:", reasons)
+#         add_points(pts)
+#     elif pts==0:
+#         print("Nothing suspicious found in this checking sequence")
+
+#     # Typosquatting (single-character change / small edits)
+#     print("Check for typosquatting (single-character edits)")
+#     pts, reasons = check_typosquat_domain(domain, WHITELIST)  
+#     if pts > 0:
+#         print("check completed, reasons:", reasons)
+#         add_points(pts)
+#     elif pts==0:
+#         print("Nothing suspicious found in this checking sequence")
+
+#     print("Continuing with further checks...")
+    
+#     # Suspicious TLDs detection
+#     print("Check for suspicious TLDs...")
+#     pts, reasons  = check_suspicious_tld(domain)
+#     if pts > 0:
+#         print("check completed, reasons:", reasons)
+#         add_points(pts)
+#     elif pts==0:
+#         print("Nothing suspicious found in this checking sequence")
+
+#     #Many hyphens / long multi-part SLDs
+#     print("Check for many hyphens / long multi-part SLDs...")
+#     pts, reasons = check_hyphenated_sld(domain)
+#     if pts > 0:
+#         print("check completed, reasons:", reasons)
+#         add_points(pts)
+#     elif pts==0:
+#         print("Nothing suspicious found in this checking sequence")
+
+#     #Check if domain is an IP literal
+#     print("Check if domain is an IP literal...")
+#     pts, reasons = check_ip_as_domain(domain)
+#     if pts > 0:
+#         print("check completed, reasons:", reasons)
+#         add_points(pts)
+#     elif pts==0:
+#         print("Nothing suspicious found in this checking sequence")
         
 
     
