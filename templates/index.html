@@ -12,15 +12,17 @@
   <div class="container">
     <!-- Left: input -->
     <div class="detector-panel">
-      <h2>Phishing Email Detector</h2>
-      <p class="desc">
-        Upload a text or email file for phishing analysis
-      </p>
-      
-      <form id="uploadForm">
-        <input type="file" id="filesInput" enctype="multipart/form-data" multiple>
-        <button type="submit">Upload files</button>
+      <center>
+        <h1>Phishing Email Detector</h1>
+        <p>Upload a text or email file for phishing analysis</p>
+      </center>
 
+      <form id="uploadForm">
+        <center>
+          <label for="filesInput" class="custom-btn">Choose Files</label>
+          <input type="file" id="filesInput" enctype="multipart/form-data" multiple accept=".txt,.eml" required>
+          <button type="submit" class="custom-btn">Upload</button>
+        </center>
         <script>
           // Preprocess file upload
           const test_form = document.getElementById("uploadForm")
@@ -47,7 +49,6 @@
                 console.log(error);
               }
             })
-            
           })
         </script>
       </form>
