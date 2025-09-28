@@ -41,11 +41,11 @@ def preprocess():
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == "POST":
-        if 'files[]' not in request.files:
+        print(request.files.getlist('file'))
+        if 'file' not in request.files:
             return jsonify({"status": "error", "message": "No file part in the request."}), 400
         
-        files = request.files.getlist("files[]")
-
+        files = request.files.getlist("file")
         uploaded_files = []
         for file in files:
             if file.filename == '':
@@ -57,15 +57,16 @@ def upload():
                 print("file uploaded successfully")
 
         user_dataframe = create_dataframe_from_group(uploaded_files)
-        saketh_count = 0
+        file_count = 0
+        results = dict.fromkeys(["score","reasons"])
         for sender in user_dataframe["sender"]:
-            saketh_count += 1
-            saketh_points, saketh_reasons = domain_check.calculate_score_domain(sender)
-            print(f"Points for e-mail {saketh_count}: {saketh_points}")
-            print(f"Reasons for e-mail {saketh_count}: {saketh_reasons}")
-        # print(user_dataframe.head())  # Print the first few rows of the DataFrame for verification
+            file_count += 1
+            domain_pts, domain_reasons = domain_check.calculate_score_domain(sender)
+            domain_reasons_string = "\n".join(domain_reasons)
+            print(f"Points for e-mail {file_count}: {domain_pts}")
+            print(f"Reasons for e-mail {file_count}:\n{domain_reasons_string}")
             
-        return "Success" # Return the DataFrame as response
+        return f"{domain_pts}|{domain_reasons_string}" # Return score and reasons (separate by |)
 
 @app.post("/analyze")
 def analyze():
