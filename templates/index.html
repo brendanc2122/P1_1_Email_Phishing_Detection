@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Phishing Email Detector</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <!-- Downloaded jQuery to handle button click event -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -14,10 +16,40 @@
       <p class="desc">
         Upload a text or email file for phishing analysis
       </p>
+      
+      <form id="uploadForm">
+        <input type="file" id="filesInput" enctype="multipart/form-data" multiple>
+        <button type="submit">Upload files</button>
 
-      <form id="upload_form" method="POST" action="http://127.0.0.1:5000/upload" enctype="multipart/form-data">
-        <input type="file" name="files[]" multiple>
-        <input type="submit" value="Upload">
+        <script>
+          // Preprocess file upload
+          const test_form = document.getElementById("uploadForm")
+          document.getElementById("uploadForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            var userData = new FormData();
+            var files = document.getElementById("filesInput").files;
+            for (var x = 0; x <= files.length; x++)
+              userData.append('file', files[x])
+            $.ajax({
+              type: 'POST',
+              url: '/upload',
+              data: userData,
+              processData: false,
+              contentType: false,
+              // If succeessful, adds response to element with id test_result
+              success: function(response) {
+                var response_parts = response.split('|')
+                document.getElementById("test-score").innerHTML = response_parts[0];
+                document.getElementById("test-reasons").innerHTML = response_parts[1];
+              },
+              // Else, show error message
+              error: function(error) {
+                console.log(error);
+              }
+            })
+            
+          })
+        </script>
       </form>
 
       <!-- New: Preprocess file upload form -->
@@ -45,12 +77,12 @@
       </div>
 
       <div class="result-score">
-        <span class="score-label">No analysis yet</span>
+        <span class="score-label" id="test-score">No analysis yet</span>
       </div>
 
       <div class="breakdown">
         <h4>Breakdown (indicators)</h4>
-        <p>No details yet — click Analyze.</p>
+        <p id="test-reasons">No details yet — click Analyze.</p>
       </div>
 
       <div class="score-contribution">
@@ -70,11 +102,8 @@
   </div>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
-  <script>
-  // filepath: c:\Users\brend\P1_1_Email_Phishing_Detection\static\script.js
-  // ...existing code...
 
-  // Preprocess file upload
+<script>
   // document.getElementById('preprocess-form').addEventListener('submit', async function(e) {
   //   e.preventDefault();
   //   const fileInput = document.getElementById('preprocess-file');
