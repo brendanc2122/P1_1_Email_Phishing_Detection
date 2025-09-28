@@ -1090,7 +1090,7 @@ if __name__ == "__main__":
         reasons.append(f"Lookalike local-part for admin/service detected: {happy}, points added = {pts}.\n")
         add_points(pts) 
     elif pts==0:
-        reasons.append("No Lookalike local-part for admin/service detected, points added = 0.\n")
+        reasons.append("No Lookalike local-part for admin/service detected, points added = 0.")
         
     # ---- FINAL OUTPUT ----  (Testing purposes)
     res = '\n'.join(f"{i+1}. {reasons}" for i, reasons in enumerate(reasons))
