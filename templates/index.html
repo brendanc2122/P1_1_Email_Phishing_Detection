@@ -5,9 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Phishing Email Detector</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
-  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <!-- Downloaded jQuery to handle button click event -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
@@ -46,7 +45,10 @@
               // If succeessful, adds response to element with id test_result
               success: function (response) {
                 alert("Success")
-                console.log(response)
+                add_results(response)
+                // var response_parts = response.split('|');
+                // document.getElementById("test-score").innerHTML = response_parts[0];
+                // document.getElementById("test-reasons").innerHTML = response_parts[1];
               },
               // Else, show error message
               error: function (error) {
@@ -56,48 +58,80 @@
           })
         </script>
       </form>
-
-      <!-- Right: results -->
-      <div class="result-panel">
-        <div class="result-header">
-          <span>Result</span>
-        </div>
-
-        <div class="result-score">
-          <span class="score-label" id="test-score">No analysis yet</span>
-        </div>
-
-        <div class="breakdown">
-          <h4>Breakdown (indicators)</h4>
-          <p id="test-reasons">No details yet — click Analyze.</p>
-        </div>
-
-        <div class="score-contribution">
-          <h4>Score contribution</h4>
-          <p>No data yet — analyze an email to view contributions.</p>
-        </div>
-
-        <div class="threshold-details">
-          <h4>Result Notes</h4>
-          <ul>
-            <li><b>UI threshold</b> (0–100) is converted to raw points internally (≈ 0–{{ 30 if false else 30 }} by
-              default).</li>
-            <li>Below threshold → <b>Safe</b>. At/above threshold → <b>Phishing</b>.</li>
-          </ul>
-        </div>
-      </div>
+    
+<div class="result-panel">
+  <h1>Result</h1>
+<div class="result-header">
+  <div id="results-carousel" class="carousel carousel-dark slide">
+    <div id="carousel-itemslist" class="carousel-inner">
+      <!-- Carousel items will be dynamically added here -->
     </div>
+    <button id="carousel-buttons" class="carousel-control-prev" type="button" data-bs-target="#results-carousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button id="carousel-buttons" class="carousel-control-next" type="button" data-bs-target="#results-carousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+  </div>
+</div>
+</div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+  function add_results(response) {
+    console.log(response);
+    for (let i = 0; i < response.length; i++) {
+      if (i == 0) {
+        // At least 1 carousel item needs "active" class
+        var active_carouselHTML = `
+          <div class="carousel-item active">
+            <div class="email-details">
+              <h4>Email ${i+1} details</h4>
+              <p><strong>Sender:</strong> ${response[i].sender}</p>
+              <p><strong>Subject:</strong> ${response[i].subject}</p>
+            </div>
+            <div class="risk-level">
+              <h4>Analysis</h4>
+              <p><strong>Score:</strong> ${response[i].score} (${response[i].risk_level})</p>
+            </div>
+            <div class="breakdown">
+              <h4>Breakdown (indicators)</h4>
+              <p>${response[i].reasons.join("<br>")}</p>
+            </div>
+          </div>
+        `;
+        document.querySelector('#results-carousel .carousel-inner').innerHTML = active_carouselHTML;
+        } else {
+          var carouselHTML = `
+          <div class="carousel-item">
+            <div class="email-details">
+              <h4>Email ${i+1} details</h4>
+              <p><strong>Sender:</strong> ${response[i].sender}</p>
+              <p><strong>Subject:</strong> ${response[i].subject}</p>
+            </div>
+            <div class="risk-level">
+              <h4>Analysis</h4>
+              <p><strong>Score:</strong> ${response[i].score} (${response[i].risk_level})</p>
+            </div>
+            <div class="breakdown">
+              <h4>Breakdown (indicators)</h4>
+              <p>${response[i].reasons.join("<br>")}</p>
+            </div>
+          </div>
+        `;
+        document.querySelector('#results-carousel .carousel-inner').innerHTML += carouselHTML;
+        }
+    }
+  }
 
-    <script>
-      // Email analyze form (existing, but ensure it uses fetch and updates UI)
-      document.querySelector('.email-form').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const sender = document.getElementById('sender').value;
-        const subject = document.getElementById('subject').value;
-        const body = document.getElementById('body').value;
-        const threshold = document.getElementById('threshold').value;
+  // Email analyze form (existing, but ensure it uses fetch and updates UI)
+  document.querySelector('.email-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const sender = document.getElementById('sender').value;
+    const subject = document.getElementById('subject').value;
+    const body = document.getElementById('body').value;
+    const threshold = document.getElementById('threshold').value;
 
         const response = await fetch('/analyze', {
           method: 'POST',
@@ -113,15 +147,13 @@
         // ...update breakdown, contributions, etc...
       });
 
-      // Threshold slider update
-      document.getElementById('threshold').addEventListener('input', function () {
-        document.getElementById('threshold-value').textContent = this.value;
-        document.getElementById('result-threshold').textContent = this.value;
-      });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-      crossorigin="anonymous"></script>
+  // Threshold slider update
+  document.getElementById('threshold').addEventListener('input', function() {
+    document.getElementById('threshold-value').textContent = this.value;
+    document.getElementById('result-threshold').textContent = this.value;
+  });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 </body>
 
 </html>
