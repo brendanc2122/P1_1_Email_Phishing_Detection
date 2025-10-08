@@ -225,14 +225,8 @@ def detect_phishing_comprehensive(subject: str, body: str, urls: List[str] = Non
         url_reasons.extend(reasons)
 
     total = round(s_score + b_score + total_url, 2)
-    return {
-        "total_risk_score": total,
-        "risk_level": risk_bucket(total),
-        "subject_analysis": s_patterns,
-        "body_analysis": b_patterns,
-        "url_analysis": url_reasons,
-    }
-
+    reasons = [s_patterns, b_patterns, url_reasons]
+    return total, reasons
 # -----------------------------
 # BATCH AND CACHE UTILITIES
 # -----------------------------
