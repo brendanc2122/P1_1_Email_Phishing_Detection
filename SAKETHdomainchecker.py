@@ -913,7 +913,6 @@ def check_role_local(local: str,
     return score, reasons
 
 #-----------------------------------------------------------------------------------LOCAL CHECK FNS END-------------------------------------------------------------------------------------
-# Main function
 def calculate_score_domain(sender):
     WHITELIST = load_whitelist("whitelist.json")
     reasons = []
