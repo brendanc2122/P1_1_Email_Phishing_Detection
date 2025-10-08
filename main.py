@@ -33,12 +33,28 @@ class PhishingDetector:
         for subject, body in zip(self.subjects, self.bodies):
             count += 1
             print(f"Buzzword check for email {count}:")
-            buzzword_pts, buzzword_reasons = buzzword_check.detect_phishing_comprehensive(subject, body)
+            res = buzzword_check.detect_phishing_comprehensive(subject, body)
+
+            # New API: dict return
+            if isinstance(res, dict):
+                buzzword_pts = float(res.get("total_risk_score", 0.0))
+                buzzword_reasons = (
+                    list(res.get("subject_analysis", []))
+                    + list(res.get("body_analysis", []))
+                    + list(res.get("url_analysis", []))
+                )
+            else:
+                # Back-compat if you flip back to tuple in the future
+                buzzword_pts, buzzword_reasons = res
+
             self.__recordbuzzwordresults__(buzzword_pts, buzzword_reasons)
+
+
 
     def __recordbuzzwordresults__(self, buzzword_pts, buzzword_reasons):
         self.buzzword_pts.append(buzzword_pts)
         self.buzzword_reasons.append(buzzword_reasons)
+
 
     def __calculate_risklevel__(self, score):
         if score <= 19:
@@ -55,8 +71,10 @@ class PhishingDetector:
     def __formatresults__(self):
         results = []
 
-        # Make sure that length of all lists are the same, else return AssertionError
-        all_lengths_same = len(self.domain_pts) == len(self.buzzword_pts) == len(self.senders) == len(self.subjects) == len(self.bodies)
+        all_lengths_same = (
+            len(self.domain_pts) == len(self.buzzword_pts) ==
+            len(self.senders) == len(self.subjects) == len(self.bodies)
+        )
         assert all_lengths_same, "Length of lists are not the same!"
 
         for i in range(len(self.domain_pts)):
@@ -71,7 +89,6 @@ class PhishingDetector:
                 "reasons": reasons,
                 "risk_level": self.__calculate_risklevel__(total_score)
             })
-        
         return results
     
     def analyse(self):
@@ -83,8 +100,8 @@ class PhishingDetector:
         self.__checkdomains__()
         self.__checkbuzzwords__()
         output = self.__formatresults__()
-        
         return output
+
 
         
 
