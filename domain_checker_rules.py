@@ -5,7 +5,6 @@ import sys
 import math
 from pathlib import Path
 from typing import Tuple, List, Set, Dict
-score = 0   # just like int score = 0;
 reasons =[]
 
 PUBLIC_SUFFIXES_2LABEL = {
@@ -247,14 +246,14 @@ def shannon_entropy(s: str) -> float:
 
 #------------------------------------------------------------------------------------DOMAIN CHECK FNS-------------------------------------------------------------------------------------
 # 0TH Check for Local-part & Domain — Tier-1 blacklist terms (with leetspeak and separators).
-def check_tier1_blacklist_multi(local_part: str, weight: int = 50, aggregate: bool = False):
-    if not local_part:
+def check_tier1_blacklist_multi(domain: str, weight: int = 10, aggregate: bool = False):
+    if not domain:
         return 0, []
 
     SEP_RX = r"[-._|+]+"  # same as in local-part cleanup
 
     # Normalize the local part
-    normalized = local_part.lower().translate(LEET_MAP)
+    normalized = domain.lower().translate(LEET_MAP)
     normalized = re.sub(SEP_RX, "", normalized)
 
     score, reasons = 0, []
@@ -309,7 +308,7 @@ def check_domain_length(domain: str) -> tuple[int, list[str]]:
     TOTAL_LEN_HIGH = 80
     LABELS_WARN = 6
     LABELS_HIGH = 8
-    MAX_POINTS = 8
+    MAX_POINTS = 30
     # --------------------------------------------
 
     pts = 0
@@ -328,24 +327,24 @@ def check_domain_length(domain: str) -> tuple[int, list[str]]:
     # empty labels (consecutive dots or leading/trailing dot)
     empty_labels = sum(1 for p in parts if p == "")
     if empty_labels > 0:
-        pts += 1
+        pts += 10
         reasons.append(f"{empty_labels} empty label(s) detected (consecutive/edge dots) (+1)")
 
     # length-based scoring
     if total_len >= TOTAL_LEN_HIGH:
-        pts += 6
-        reasons.append(f"very long domain ({total_len} chars) (+6)")
+        pts += 20
+        reasons.append(f"very long domain ({total_len} chars) (+20)")
     elif total_len >= TOTAL_LEN_WARN:
-        pts += 3
-        reasons.append(f"long domain ({total_len} chars) (+3)")
+        pts += 15
+        reasons.append(f"long domain ({total_len} chars) (+15)")
 
     # label-count scoring
     if label_count >= LABELS_HIGH:
-        pts += 4
-        reasons.append(f"many labels ({label_count}) (+4)")
+        pts += 10
+        reasons.append(f"many labels ({label_count}) (+10)")
     elif label_count >= LABELS_WARN:
-        pts += 2
-        reasons.append(f"several labels ({label_count}) (+2)")
+        pts += 15
+        reasons.append(f"several labels ({label_count}) (+15)")
 
     # cap points from this heuristic
     if pts > MAX_POINTS:
@@ -373,10 +372,8 @@ def check_brand_token(domain: str, WHITELIST: set = None) -> tuple[int, list[str
     for brand in BRAND_KEYWORDS:
         if brand in d:
             if d not in WHITELIST:
-                pts += 15
-                reasons.append(f"brand token '{brand}' found in suspicious domain '{d}' (+15)")
-            else:
-                reasons.append(f"brand token '{brand}' found but matches official domain (safe)")
+                pts += 30
+                reasons.append(f"brand token '{brand}' found in suspicious domain '{d}' (+30)")
 
     return pts, reasons
 
@@ -540,8 +537,8 @@ def check_suspicious_tld(domain: str) -> tuple[int, str]:
     Heuristic #4 — Suspicious TLDs.
     Returns: (points, reason_string)
 
-    - HIGH_RISK_TLDS get +6
-    - MEDIUM_RISK_TLDS get +4
+    - HIGH_RISK_TLDS get +10
+    - MEDIUM_RISK_TLDS get +8
     """
     if not domain:
         return 0, "no domain provided for TLD check"
@@ -561,9 +558,9 @@ def check_suspicious_tld(domain: str) -> tuple[int, str]:
     }
 
     if tld in HIGH_RISK_TLDS:
-        return 6, f"suspicious TLD '.{tld}' (+6)"
+        return 10, f"suspicious TLD '.{tld}' (+10)"
     if tld in MEDIUM_RISK_TLDS:
-        return 4, f"suspicious TLD '.{tld}' (+4)"
+        return 8, f"suspicious TLD '.{tld}' (+8)"
 
     return 0, "TLD not suspicious"
 
@@ -637,7 +634,7 @@ def check_ip_as_domain(domain: str) -> tuple[int, str]:
 
     try:
         ipaddress.ip_address(d)  # validates IPv4 or IPv6
-        pts = 15
+        pts = 25
         kind = "IPv6" if ":" in d else "IPv4"
         where = "bracketed" if bracketed else "bare"
         return pts, f"{kind} {where} address used as domain (+{pts})"
@@ -924,8 +921,8 @@ def calculate_score_domain(sender):
     # If domain exactly equals a whitelist entry -> immediate exit with points = 0, move on to username checks
     print("Checking exact whitelist match...")
     if domain in WHITELIST:
-        # Print a clear message and exit with success code
-        reasons.append(f"Exact whitelist domain match: {domain}, points added = 0.")
+        #exit to local part checks
+        reasons.append(f"Domain {domain} is an exact whitelist match, skipping further domain checks.")
         skip_more_domain = True
 
     if not skip_more_domain:
@@ -940,20 +937,16 @@ def calculate_score_domain(sender):
         badset = load_bad_domains("phishing-domains-ACTIVE.txt")
         if is_bad_domain(domain, badset):
             reasons.append(f"⚠️ Domain {domain} is in the blacklist!, points added = 50.")
-            add_points(50)  # example penalty for bad domain
-    
-        reasons.append(f"✅ Domain {domain} is NOT in the blacklist, points added = 0.")
+            add_points(60)  # example penalty for bad domain
 
     # pattern recognition code
 
         # check for explicit tier 1 blacklist terms in domain
         print("Check for explicit tier 1 blacklist terms in domain...")
-        pts, happy = check_tier1_blacklist_multi(local, 50,False)
+        pts, happy = check_tier1_blacklist_multi(local, 10,False)
         if pts > 0:
             reasons.append(f"Tier 1 Blacklisted Terms Detected: {happy}, points added = {pts}.")
             add_points(pts)
-        elif pts==0:
-            reasons.append("No Tier 1 Blacklisted Terms Detected, points added = 0.")
 
         # check long domain
         print("Check for long domain / many labels...")
@@ -961,8 +954,6 @@ def calculate_score_domain(sender):
         if pts > 0:
             reasons.append(f"Long domain/Excessive Labels detected:, {happy}, points added = {pts}.")
             add_points(pts)
-        elif pts==0:
-            reasons.append("No Long Domains or Excessive Labels detected, points added = 0.")
         
         # check improper brand token
         print("Check for improper brand token")
@@ -970,8 +961,6 @@ def calculate_score_domain(sender):
         if pts > 0:
             reasons.append(f"Improper Brand Token Detected: {happy}, points added = {pts}.")
             add_points(pts)
-        elif pts==0:
-            reasons.append("No Improper Brand Token Detected, points added = 0.")
 
         # Detect domains that append "action/update" tokens to brand names
         print("Detect domains that append \"action/update\" or other Scam tokens to brand names\n")
@@ -979,8 +968,6 @@ def calculate_score_domain(sender):
         if pts > 0:
             reasons.append(f"Scam Token appended to official brand domain detected: {happy}, points added = {pts}.")
             add_points(pts)
-        elif pts==0:
-            reasons.append("No Scam Token appended to official brand domain detected, points added = 0.")
 
         # Typosquatting (single-character change / small edits)
         print("Check for typosquatting (single-character edits)")
@@ -988,8 +975,6 @@ def calculate_score_domain(sender):
         if pts > 0:
             reasons.append(f"Typosquatting detected: {happy}, points added = {pts}.")
             add_points(pts)
-        elif pts==0:
-            reasons.append("No typosquatting detected, points added = 0.")
         
         # Suspicious TLDs detection
         print("Check for suspicious Top Level Domains...")
@@ -997,8 +982,6 @@ def calculate_score_domain(sender):
         if pts > 0:
             reasons.append(f"Suspicious Top Level Domain detected: {happy}, points added = {pts}.")
             add_points(pts)
-        elif pts==0:
-            reasons.append("No suspicious Top Level Domain detected, points added = 0.")
 
         #Many hyphens / long multi-part SLDs
         print("Check for many hyphens / long multi-part Small Level Domains")
@@ -1006,8 +989,6 @@ def calculate_score_domain(sender):
         if pts > 0:
             reasons.append(f"Many hyphens / long multi-part Small Level Domains detected: {happy}, points added = {pts}.")
             add_points(pts)
-        elif pts==0:
-            reasons.append("No hyphens or long multi-part Small Level Domains detected: points added = 0.")
 
         #Check if domain is an IP literal
         print("Check if domain is an IP literal")
@@ -1015,21 +996,17 @@ def calculate_score_domain(sender):
         if pts > 0:
             reasons.append(f"IP Literal Domain detected: {happy}, points added = {pts}.")
             add_points(pts)
-        elif pts==0:
-            print("No IP Literal Domain detected, points added = 0.")
         
-    reasons.append("Starting Local Part Checks...\n")
+    print("Starting Local Part Checks...\n")
 
     # ---- LOCAL PART CHECKS ----
     
     #Tier 1 Blacklisted Word Check
     print("Detecting Tier 1 Blacklisted Terms in local-part")
-    pts, happy = check_tier1_blacklist_multi(local, 50,False)
+    pts, happy = check_tier1_blacklist_multi(local, 10,False)
     if pts > 0:
         reasons.append(f"Tier 1 Blacklisted Terms Detected: {happy}, points added = {pts}.")
         add_points(pts)
-    elif pts==0:
-        reasons.append("No Tier 1 Blacklisted Terms Detected, points added = 0.")
 
     #Local part check for Generic Action Words
     print("Detecting domains that append \"action/update\" or other Scam tokens to brand names")
@@ -1037,8 +1014,6 @@ def calculate_score_domain(sender):
     if pts > 0:
         reasons.append(f"Scam Token appended to official brand local detected: {happy}, points added = {pts}.")
         add_points(pts)
-    elif pts==0:
-        reasons.append("No Scam Token appended to official brand local detected, points added = 0.")
 
     #Local-part equals brand while domain doesn’t match official brand domain
     print("Checking if local-part equals brand while domain doesn't match official brand domain")
@@ -1046,8 +1021,6 @@ def calculate_score_domain(sender):
     if pts > 0:
         reasons.append(f"Local-part equals brand while domain doesn't match official brand domain: {happy}, points added = {pts}.")
         add_points(pts)
-    elif pts==0:
-        reasons.append("No Local-part equals brand while domain doesn't match official brand domain, points added = 0.")
 
     #Long random / high-entropy local-parts
     print("Detecting long random / high-entropy local-parts")
@@ -1055,8 +1028,6 @@ def calculate_score_domain(sender):
     if pts > 0:
         reasons.append(f"Long random / high-entropy local-parts detected: {happy}, points added = {pts}.")
         add_points(pts)
-    elif pts ==0:
-        reasons.append("No Long random / high-entropy local-parts detected, points added = 0.")
     
     #Many dots / punctuation / unusual chars
     print("Detecting many dots / punctuation / unusual chars in local-part")
@@ -1064,8 +1035,6 @@ def calculate_score_domain(sender):
     if pts > 0:
         reasons.append(f"Many dots / punctuation / unusual chars in local-part detected: {happy}, points added = {pts}.")
         add_points(pts) 
-    elif pts==0:
-        reasons.append("No excessive dots / punctuation / unusual chars in local-part detected, points added = 0.")
 
     #Detect Numeric Heavy or timestamp like local parts
     print("Detecting Numeric Heavy or timestamp-like local part")
@@ -1073,15 +1042,14 @@ def calculate_score_domain(sender):
     if pts > 0:
         reasons.append(f"Numeric Heavy or timestamp-like local part detected: {happy}, points added = {pts}.")
         add_points(pts) 
-    elif pts==0:
-        reasons.append("No Numeric Heavy or timestamp-like local part detected, points added = 0.")
 
     #Last check Detect Lookalike local-part for admin/service
     pts, happy = check_role_local(local)
     if pts > 0:
         reasons.append(f"Lookalike local-part for admin/service detected: {happy}, points added = {pts}.\n")
         add_points(pts) 
-    elif pts==0:
-        reasons.append("No Lookalike local-part for admin/service detected, points added = 0.\n")
-        
+
+    pts = score
+    if score>100:
+        score =100
     return score, reasons
