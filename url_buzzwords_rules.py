@@ -131,7 +131,6 @@ def analyze_url_risk(url: str, is_subject: bool=False) -> Tuple[float, List[str]
 def analyze_text_patterns(text: str, weight_multiplier: float=1.0) -> Tuple[float, List[str]]:
     s = 0.0
     matches: List[str] = []
-    print(buzzword_categories.items())
     for n, data in buzzword_categories.items():
         c = 0
         for p in data['patterns']:
@@ -165,11 +164,12 @@ def analyze_sender(sender_email: str) -> float:
 ### COMPREHENSIVE PHISHING DETECTION
 ### ------------------------------------------------------
 
-def detect_phishing_comprehensive(subject: str, body: str, sender_email: str="", urls: List[str]=None) -> Dict:
+def detect_phishing_comprehensive(subject: str, body: str, urls: List[str]=None) -> Dict:
     if urls is None:
         urls = url_pattern.findall(subject + " " + body)
     s_score, s_patterns = analyze_text_patterns(subject, 1.2)
     b_score, b_patterns = analyze_text_patterns(body, 1.0)
+
     url_scores, url_risks = [], []
     total_url = 0.0
     for u in urls:
@@ -177,22 +177,14 @@ def detect_phishing_comprehensive(subject: str, body: str, sender_email: str="",
         url_scores.append(risk)
         url_risks.extend(reasons)
         total_url += risk
-    sender_risk = analyze_sender(sender_email)
-    total = s_score + b_score + total_url + sender_risk
+    
+    # Round to 2 decimal places
+    total = s_score + b_score + total_url
     total_rounded = round(total, 2)
-    print(s_score)
-    print(b_score)
-    print(total_url)
+
     reasons_list = [
         [s_patterns], [b_patterns], [url_risks]
     ]
-    # print(reasons_list)
-    # reasons_dict = {
-    #     'subject_analysis': {'score': round(s_score, 2), 'patterns': s_patterns},
-    #     'body_analysis': {'score': round(b_score, 2), 'patterns': b_patterns},
-    #     'url_analysis': {'total_score': round(total_url, 2),'individual_urls':[{'url':u,'score':s} for u,s in zip(urls,url_scores)],'risks':url_risks},
-    #     'sender_analysis': {'score': sender_risk,'domain': extract_domain(sender_email) if '@' in sender_email else 'unknown'}
-    # }
     return total_rounded, reasons_list
 
 ### ------------------------------------------------------
