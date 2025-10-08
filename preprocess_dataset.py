@@ -9,13 +9,6 @@ def create_dataframe_from_group(uploaded_files_list):
 
     def get_raw_emails():
         raw_emails = []
-        
-        # try:
-        #     files_list = os.listdir(path)
-        # except Exception as e:
-        #     print(f"Error reading database: {e}")
-        #     return
-
 
         for file_name in uploaded_files_list:
             if file_name is not None and file_name != "cmds":
@@ -51,41 +44,6 @@ def create_dataframe_from_group(uploaded_files_list):
         body = re.sub(r"\s{2,}", " ", body) # Clears excess (more than 1) consecutive whitespaces
 
         return body
-
-    def clean_body(body):
-        # To make body text more readable by the rules
-        # Cleans up excess html elements and whitespace
-        body = re.sub(r"<meta\s.+>|</?head.*>", "", body, flags=re.IGNORECASE)
-        body = re.sub(r"</?html>|</?title.*>|</?body.*>|</?p.*>|</?div.*>", "", body, flags=re.IGNORECASE)
-
-        ## Table elements
-        # body = re.sub(r"</?table.*>|</?tr>|</?td.*>|</?tbody>", "", body, flags=re.IGNORECASE)
-        #body = re.sub(r"</?tr>", "", body, flags=re.IGNORECASE)
-        #body = re.sub(r"</?td.*>", "", body, flags=re.IGNORECASE)
-
-        ## Text elements (Italics, bold, underline, font, etc.)
-        body = re.sub(r"</?i>|</?u>|</?b>|</?font.*>", "", body, flags=re.IGNORECASE)
-        #<br> and <br/> are line break elements, so we replace them with a whitespace for now
-        body = re.sub(r"<br/?>", " ", body, flags=re.IGNORECASE)
-
-        ## Image
-        # body = re.sub(R"<img[^>]*>", "", body, flags=re.IGNORECASE | re.DOTALL)
-
-        ## Extract the link from <a href > element
-        body = re.sub(r'<a.+href="|">|</a>', "", body, flags=re.IGNORECASE)
-
-        ## HTML elements to represent certain characters
-        body = re.sub(r"&amp;", "&", body, flags=re.IGNORECASE) # &
-        body = re.sub(r"&quot;", "'", body, flags=re.IGNORECASE) # quotes
-        body = re.sub(r"&nbsp;", " ", body, flags=re.IGNORECASE) # non-breaking space
-
-        ## Clear everything else encoded in < > that was not specified above
-        body = re.sub(r"<[^>]*>", "", body, flags=re.DOTALL)
-        
-        body = re.sub(r"\s{2,}", " ", body) # Clears excess (more than 1) consecutive whitespaces
-        
-        return body
-        
     
     subjects = []
     senders = []
@@ -139,53 +97,3 @@ def create_dataframe_from_group(uploaded_files_list):
     df_emails.to_csv('csv_files/user_data.csv',mode='w',index=False)
     
     return df_emails
-
-'''
-# Dataframe for spam
-spam_df = create_dataframe_from_group('spam')
-spam_2_df = create_dataframe_from_group('spam_2')
-spam_df_combined = pd.concat([spam_df, spam_2_df], ignore_index=True)
-
-# Sample a few random rows of the DataFrame and its info
-print("\nSpam Email Dataframe:")
-# print(spam_df_combined.sample(5))
-print(spam_df_combined.info())
-
-# Dataframe for easy_ham
-easy_ham_df = create_dataframe_from_group('easy_ham')
-easy_ham_2_df = create_dataframe_from_group('easy_ham_2')
-easy_ham_df_combined = pd.concat([easy_ham_df, easy_ham_2_df], ignore_index=True)
-
-# Sample a few random rows of the DataFrame and its info
-print("\nEasy Ham Email Dataframe:")
-# print(easy_ham_df_combined.sample(5))
-print(easy_ham_df_combined.info())
-
-# Dataframe for hard_ham
-hard_ham_df = create_dataframe_from_group('hard_ham')
-
-# Sample a few random rows of the DataFrame and its info
-print("\nHard Ham Email Dataframe:")
-# print(hard_ham_df.sample(5))
-print(hard_ham_df.info())
-
-spam_count = len(spam_df_combined)
-easy_ham_count = len(easy_ham_df_combined)
-hard_ham_count = len(hard_ham_df)
-
-total_email_count = spam_count + easy_ham_count + hard_ham_count
-print((f"\nTotal number of emails: {total_email_count}"
-       f"\nNumber of spam emails: {spam_count} ({spam_count/total_email_count*100:.2f}%)")
-    )
-
-# Save dataframes to CSV files and add to testing_data folder
-easy_ham_df_combined.to_csv('testing_data/easy_ham.csv',mode='w',index=False)
-hard_ham_df.to_csv('testing_data/hard_ham.csv',mode='w',index=False)
-spam_df_combined.to_csv('testing_data/spam.csv',mode='w',index=False)
-'''
-
-'''
-def make from test data (spamassassin_corpus):
-    spam_df = makedataframefromgroup(spamassasssin path)
-    print(spam_df.head())
-'''

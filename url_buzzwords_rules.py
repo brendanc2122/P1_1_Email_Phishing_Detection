@@ -131,6 +131,7 @@ def analyze_url_risk(url: str, is_subject: bool=False) -> Tuple[float, List[str]
 def analyze_text_patterns(text: str, weight_multiplier: float=1.0) -> Tuple[float, List[str]]:
     s = 0.0
     matches: List[str] = []
+    print(buzzword_categories.items())
     for n, data in buzzword_categories.items():
         c = 0
         for p in data['patterns']:
@@ -161,36 +162,12 @@ def analyze_sender(sender_email: str) -> float:
     return score
 
 ### ------------------------------------------------------
-### RISK RECOMMENDATIONS
-### ------------------------------------------------------
-
-def generate_recommendations(score: float, level: str) -> List[str]:
-    recs: List[str] = []
-    if level in ["CRITICAL","HIGH"]:
-        recs.extend([
-            "DO NOT click any links or download attachments",
-            "Report this email as phishing to your IT security team",
-            "Delete the email immediately",
-            "If you've already clicked links, change your passwords immediately"
-        ])
-    elif level == "MEDIUM":
-        recs.extend([
-            "Exercise caution - verify sender through alternative means",
-            "Do not provide sensitive information",
-            "Check URLs carefully before clicking"
-        ])
-    elif level == "LOW":
-        recs.append("Low risk but remain vigilant")
-    return recs
-
-### ------------------------------------------------------
 ### COMPREHENSIVE PHISHING DETECTION
 ### ------------------------------------------------------
 
 def detect_phishing_comprehensive(subject: str, body: str, sender_email: str="", urls: List[str]=None) -> Dict:
     if urls is None:
         urls = url_pattern.findall(subject + " " + body)
-    t0 = datetime.now()
     s_score, s_patterns = analyze_text_patterns(subject, 1.2)
     b_score, b_patterns = analyze_text_patterns(body, 1.0)
     url_scores, url_risks = [], []
@@ -202,27 +179,21 @@ def detect_phishing_comprehensive(subject: str, body: str, sender_email: str="",
         total_url += risk
     sender_risk = analyze_sender(sender_email)
     total = s_score + b_score + total_url + sender_risk
-    if total >= 10:
-        level = "CRITICAL"
-    elif total >= 6:
-        level = "HIGH"
-    elif total >= 3:
-        level = "MEDIUM"
-    elif total >= 1:
-        level = "LOW"
-    else:
-        level = "SAFE"
-    duration = (datetime.now() - t0).total_seconds()
-    return {
-        'total_risk_score': round(total, 2),
-        'risk_level': level,
-        'subject_analysis': {'score': round(s_score, 2), 'patterns': s_patterns},
-        'body_analysis': {'score': round(b_score, 2), 'patterns': b_patterns},
-        'url_analysis': {'total_score': round(total_url, 2),'individual_urls':[{'url':u,'score':s} for u,s in zip(urls,url_scores)],'risks':url_risks},
-        'sender_analysis': {'score': sender_risk,'domain': extract_domain(sender_email) if '@' in sender_email else 'unknown'},
-        'processing_time_ms': round(duration*1000,2),
-        'recommendations': generate_recommendations(total, level)
-    }
+    total_rounded = round(total, 2)
+    print(s_score)
+    print(b_score)
+    print(total_url)
+    reasons_list = [
+        [s_patterns], [b_patterns], [url_risks]
+    ]
+    # print(reasons_list)
+    # reasons_dict = {
+    #     'subject_analysis': {'score': round(s_score, 2), 'patterns': s_patterns},
+    #     'body_analysis': {'score': round(b_score, 2), 'patterns': b_patterns},
+    #     'url_analysis': {'total_score': round(total_url, 2),'individual_urls':[{'url':u,'score':s} for u,s in zip(urls,url_scores)],'risks':url_risks},
+    #     'sender_analysis': {'score': sender_risk,'domain': extract_domain(sender_email) if '@' in sender_email else 'unknown'}
+    # }
+    return total_rounded, reasons_list
 
 ### ------------------------------------------------------
 ### BATCH AND CACHE UTILITIES
