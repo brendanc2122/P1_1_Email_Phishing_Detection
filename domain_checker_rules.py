@@ -916,6 +916,8 @@ def check_role_local(local: str,
 def calculate_score_domain(sender):
     WHITELIST = load_whitelist("whitelist.json")
     reasons = []
+    global score
+    score = 0
     local, domain = split_sender(sender)
     skip_more_domain = False
     # ---- EXACT MATCH CHECK (no subdomain allowed) ----

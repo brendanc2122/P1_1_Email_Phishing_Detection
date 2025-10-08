@@ -94,6 +94,6 @@ def create_dataframe_from_group(uploaded_files_list):
     })
 
     # Save the pandas DataFrame to a CSV file
-    df_emails.to_csv('csv_files/user_data.csv',mode='w',index=False)
+    # df_emails.to_csv('csv_files/user_data.csv',mode='w',index=False)
     
     return df_emails
