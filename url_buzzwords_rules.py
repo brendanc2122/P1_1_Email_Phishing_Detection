@@ -138,7 +138,7 @@ def analyze_text_patterns(text: str, weight_multiplier: float=1.0) -> Tuple[floa
                 c += 1
         if c > 0:
             s += c * data['weight'] * weight_multiplier
-            matches.append(f"{n}: {c} matches")
+            matches.append(f"{c}x {n} buzzwords detected, pts added: {s}")
     return s, matches
 
 ### ------------------------------------------------------
@@ -182,9 +182,7 @@ def detect_phishing_comprehensive(subject: str, body: str, urls: List[str]=None)
     total = s_score + b_score + total_url
     total_rounded = round(total, 2)
 
-    reasons_list = [
-        [s_patterns], [b_patterns], [url_risks]
-    ]
+    reasons_list = [s_patterns, b_patterns, url_risks]
     return total_rounded, reasons_list
 
 ### ------------------------------------------------------
