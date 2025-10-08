@@ -994,7 +994,7 @@ if __name__ == "__main__":
         print("Checking for typosquatting (single-character edits)")
         pts, happy = check_typosquat_domain(domain, WHITELIST)  
         if pts > 0:
-            reasons.append(f"Typosquatting detected: {reasons}, points added = {pts}.")
+            reasons.append(f"Typosquatting detected: {happy}, points added = {pts}.")
             add_points(pts)
         elif pts==0:
             reasons.append("No typosquatting detected, points added = 0.")
