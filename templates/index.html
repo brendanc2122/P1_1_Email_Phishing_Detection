@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Phishing Email Detector</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <!-- Downloaded jQuery to handle button click event -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
@@ -41,7 +43,7 @@
               // If succeessful, adds response to element with id test_result
               success: function(response) {
                 alert("Success")
-                console.log(response)
+                add_results(response)
                 // var response_parts = response.split('|');
                 // document.getElementById("test-score").innerHTML = response_parts[0];
                 // document.getElementById("test-reasons").innerHTML = response_parts[1];
@@ -73,64 +75,60 @@
     </div> -->
 
     <!-- Right: results -->
-    <div class="result-panel">
-      <div class="result-header">
-        <span>Result</span>
-        <span class="threshold-label">Threshold: <span id="result-threshold">60</span></span>
-      </div>
-
-      <div class="result-score">
-        <span class="score-label" id="test-score">No analysis yet</span>
-      </div>
-
-      <div class="breakdown">
-        <h4>Breakdown (indicators)</h4>
-        <p id="test-reasons">No details yet — click Analyze.</p>
-      </div>
-
-      <div class="score-contribution">
-        <h4>Score contribution</h4>
-        <p>No data yet — analyze an email to view contributions.</p>
-      </div>
-
-      <div class="threshold-details">
-        <h4>Threshold details</h4>
-        <ul>
-          <li><b>UI threshold</b> (0–100) is converted to raw points internally (≈ 0–{{ 30 if false else 30 }} by default).</li>
-          <li>Below threshold → <b>Safe</b>. At/above threshold → <b>Phishing</b>.</li>
-          <li>Tune later using your labeled dataset for best precision/recall.</li>
-        </ul>
-      </div>
+<div class="result-panel">
+  <h1>Result</h1>
+<div class="result-header">
+  <div id="results-carousel" class="carousel carousel-dark slide">
+    <div id="carousel-itemslist" class="carousel-inner">
+      <!-- Carousel items will be dynamically added here -->
     </div>
+    <button id="carousel-buttons" class="carousel-control-prev" type="button" data-bs-target="#results-carousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button id="carousel-buttons" class="carousel-control-next" type="button" data-bs-target="#results-carousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
   </div>
-
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</div>
+</div>
 
 <script>
-  // document.getElementById('preprocess-form').addEventListener('submit', async function(e) {
-  //   e.preventDefault();
-  //   const fileInput = document.getElementById('preprocess-file');
-  //   const statusSpan = document.getElementById('preprocess-status');
-  //   statusSpan.textContent = 'Uploading...';
-
-  //   const formData = new FormData();
-  //   formData.append('file', fileInput.files[0]);
-
-  //   try {
-  //     const response = await fetch('/preprocess', {
-  //       method: 'POST',
-  //       body: formData
-  //     });
-  //     const result = await response.json();
-  //     if (result.status === 'success') {
-  //       statusSpan.textContent = 'Preprocessing completed!';
-  //     } else {
-  //       statusSpan.textContent = 'Error: ' + (result.message || 'Unknown error');
-  //     }
-  //   } catch (err) {
-  //     statusSpan.textContent = 'Error: ' + err.message;
-  //   }
-  // });
+  function add_results(response) {
+    for (let i = 0; i < response.length; i++) {
+      if (i == 0) {
+        // At least 1 carousel item needs "active" class
+        var active_carouselHTML = `
+          <div class="carousel-item active">
+            <div class="risk-level">
+              <h4>Analysis</h4>
+              <p>Score: ${response[i].score} (${response[i].risk_level})</p>
+            </div>
+            <div class="breakdown">
+              <h4>Breakdown (indicators)</h4>
+              <p>${response[i].reasons.join("<br>")}</p>
+            </div>
+          </div>
+        `;
+        document.querySelector('#results-carousel .carousel-inner').innerHTML = active_carouselHTML;
+        } else {
+          var carouselHTML = `
+          <div class="carousel-item">
+            <div class="risk-level">
+              <h4>Analysis</h4>
+              <p>Score: ${response[i].score} (${response[i].risk_level})</p>
+            </div>
+            <div class="breakdown">
+              <h4>Breakdown (indicators)</h4>
+              <p>${response[i].reasons.join("<br>")}</p>
+            </div>
+          </div>
+        `;
+        document.querySelector('#results-carousel .carousel-inner').innerHTML += carouselHTML;
+        }
+    }
+  }
 
   // Email analyze form (existing, but ensure it uses fetch and updates UI)
   document.querySelector('.email-form').addEventListener('submit', async function(e) {
@@ -160,5 +158,6 @@
     document.getElementById('result-threshold').textContent = this.value;
   });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 </body>
 </html>

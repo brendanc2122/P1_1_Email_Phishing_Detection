@@ -16,11 +16,6 @@ class PhishingDetector:
         self.subjects = [row['subject'] for index, row in self.dataframe.iterrows()]
         self.bodies = [row['body'] for index, row in self.dataframe.iterrows()]
 
-        self.domain_pts = []
-        self.domain_reasons = []
-        self.buzzword_pts = []
-        self.buzzword_reasons = []
-
     def __checkdomains__(self):
         count = 0
         for sender in self.senders:
@@ -45,9 +40,20 @@ class PhishingDetector:
         self.buzzword_pts.append(buzzword_pts)
         self.buzzword_reasons.append(buzzword_reasons)
 
+    def __calculate_risklevel__(self, score):
+        if score <= 19:
+            return "Safe"
+        elif score <= 39:
+            return "Low risk"
+        elif score <= 59:
+            return "Suspicious"
+        elif score <= 79:
+            return "Likely phishing"
+        else:
+            return "Phishing"
+
     def __formatresults__(self):
         results = []
-        total_score = []
 
         # Make sure that length of all lists are the same, else return AssertionError
         all_lengths_same = len(self.domain_pts) == len(self.buzzword_pts) == len(self.senders) == len(self.subjects) == len(self.bodies)
@@ -60,13 +66,19 @@ class PhishingDetector:
                 "sender": self.senders[i],
                 "subject": self.subjects[i],
                 "body": self.bodies[i],
-                "total_score": total_score,
-                "reasons": reasons
+                "score": total_score,
+                "reasons": reasons,
+                "risk_level": self.__calculate_risklevel__(total_score)
             })
         
         return results
     
     def analyse(self):
+        self.domain_pts = []
+        self.domain_reasons = []
+        self.buzzword_pts = []
+        self.buzzword_reasons = []
+
         self.__checkdomains__()
         self.__checkbuzzwords__()
         output = self.__formatresults__()
