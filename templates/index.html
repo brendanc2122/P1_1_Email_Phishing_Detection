@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Phishing Email Detector</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <!-- Downloaded jQuery to handle button click event -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 </head>
+
 <body>
   <div class="container">
     <!-- Left: input -->
@@ -19,14 +24,14 @@
 
       <form id="uploadForm">
         <center>
-          <label for="filesInput" class="custom-btn">Choose Files</label>
-          <input type="file" id="filesInput" enctype="multipart/form-data" multiple accept=".txt,.eml" required>
-          <button type="submit" class="custom-btn">Upload</button>
+          <input type="file" id="filesInput" class="custom-btn" enctype="multipart/form-data" multiple accept=".txt,.eml">
+          <button type="submit" class="upload-btn">Upload</button>
         </center>
+
         <script>
           // Preprocess file upload
           const test_form = document.getElementById("uploadForm")
-          document.getElementById("uploadForm").addEventListener("submit", function(event) {
+          document.getElementById("uploadForm").addEventListener("submit", function (event) {
             event.preventDefault();
             var userData = new FormData();
             var files = document.getElementById("filesInput").files;
@@ -39,15 +44,12 @@
               processData: false,
               contentType: false,
               // If succeessful, adds response to element with id test_result
-              success: function(response) {
+              success: function (response) {
                 alert("Success")
                 console.log(response)
-                // var response_parts = response.split('|');
-                // document.getElementById("test-score").innerHTML = response_parts[0];
-                // document.getElementById("test-reasons").innerHTML = response_parts[1];
               },
               // Else, show error message
-              error: function(error) {
+              error: function (error) {
                 console.log(error);
               }
             })
@@ -55,110 +57,71 @@
         </script>
       </form>
 
-      <!-- New: Preprocess file upload form -->
-      <!-- <form method="POST" id="preprocess-form" enctype="multipart/form-data" style="margin-bottom: 1em;">
-        <label for="preprocess-file">Upload Samples For Analysis:</label>
-        <input type="file" id="preprocess-file" name="files[]" multiple accept=".txt"required>
-        <input type="submit" value="Upload">
-        <button type="submit" value="Upload">Preprocess</button>
-        <span id="preprocess-status"></span>
-      </form> -->
-
-      <!-- <form class="email-form">
-
-          <button type="button" class="copy-btn">Copy report</button>
-          <button type="button" class="download-btn">Download</button>
+      <!-- Right: results -->
+      <div class="result-panel">
+        <div class="result-header">
+          <span>Result</span>
         </div>
-      </form>
-    </div> -->
 
-    <!-- Right: results -->
-    <div class="result-panel">
-      <div class="result-header">
-        <span>Result</span>
-        <span class="threshold-label">Threshold: <span id="result-threshold">60</span></span>
-      </div>
+        <div class="result-score">
+          <span class="score-label" id="test-score">No analysis yet</span>
+        </div>
 
-      <div class="result-score">
-        <span class="score-label" id="test-score">No analysis yet</span>
-      </div>
+        <div class="breakdown">
+          <h4>Breakdown (indicators)</h4>
+          <p id="test-reasons">No details yet — click Analyze.</p>
+        </div>
 
-      <div class="breakdown">
-        <h4>Breakdown (indicators)</h4>
-        <p id="test-reasons">No details yet — click Analyze.</p>
-      </div>
+        <div class="score-contribution">
+          <h4>Score contribution</h4>
+          <p>No data yet — analyze an email to view contributions.</p>
+        </div>
 
-      <div class="score-contribution">
-        <h4>Score contribution</h4>
-        <p>No data yet — analyze an email to view contributions.</p>
-      </div>
-
-      <div class="threshold-details">
-        <h4>Threshold details</h4>
-        <ul>
-          <li><b>UI threshold</b> (0–100) is converted to raw points internally (≈ 0–{{ 30 if false else 30 }} by default).</li>
-          <li>Below threshold → <b>Safe</b>. At/above threshold → <b>Phishing</b>.</li>
-          <li>Tune later using your labeled dataset for best precision/recall.</li>
-        </ul>
+        <div class="threshold-details">
+          <h4>Result Notes</h4>
+          <ul>
+            <li><b>UI threshold</b> (0–100) is converted to raw points internally (≈ 0–{{ 30 if false else 30 }} by
+              default).</li>
+            <li>Below threshold → <b>Safe</b>. At/above threshold → <b>Phishing</b>.</li>
+          </ul>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 
-<script>
-  // document.getElementById('preprocess-form').addEventListener('submit', async function(e) {
-  //   e.preventDefault();
-  //   const fileInput = document.getElementById('preprocess-file');
-  //   const statusSpan = document.getElementById('preprocess-status');
-  //   statusSpan.textContent = 'Uploading...';
+    <script>
+      // Email analyze form (existing, but ensure it uses fetch and updates UI)
+      document.querySelector('.email-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const sender = document.getElementById('sender').value;
+        const subject = document.getElementById('subject').value;
+        const body = document.getElementById('body').value;
+        const threshold = document.getElementById('threshold').value;
 
-  //   const formData = new FormData();
-  //   formData.append('file', fileInput.files[0]);
+        const response = await fetch('/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sender, subject, body, threshold })
+        });
+        const result = await response.json();
 
-  //   try {
-  //     const response = await fetch('/preprocess', {
-  //       method: 'POST',
-  //       body: formData
-  //     });
-  //     const result = await response.json();
-  //     if (result.status === 'success') {
-  //       statusSpan.textContent = 'Preprocessing completed!';
-  //     } else {
-  //       statusSpan.textContent = 'Error: ' + (result.message || 'Unknown error');
-  //     }
-  //   } catch (err) {
-  //     statusSpan.textContent = 'Error: ' + err.message;
-  //   }
-  // });
+        // Update result UI (implement as needed)
+        document.querySelector('.result-score .score-label').textContent =
+          result.score !== undefined ? `Score: ${result.score}` : 'No analysis yet';
+        document.getElementById('result-threshold').textContent = threshold;
+        // ...update breakdown, contributions, etc...
+      });
 
-  // Email analyze form (existing, but ensure it uses fetch and updates UI)
-  document.querySelector('.email-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const sender = document.getElementById('sender').value;
-    const subject = document.getElementById('subject').value;
-    const body = document.getElementById('body').value;
-    const threshold = document.getElementById('threshold').value;
-
-    const response = await fetch('/analyze', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ sender, subject, body, threshold })
-    });
-    const result = await response.json();
-
-    // Update result UI (implement as needed)
-    document.querySelector('.result-score .score-label').textContent =
-      result.score !== undefined ? `Score: ${result.score}` : 'No analysis yet';
-    document.getElementById('result-threshold').textContent = threshold;
-    // ...update breakdown, contributions, etc...
-  });
-
-  // Threshold slider update
-  document.getElementById('threshold').addEventListener('input', function() {
-    document.getElementById('threshold-value').textContent = this.value;
-    document.getElementById('result-threshold').textContent = this.value;
-  });
-  </script>
+      // Threshold slider update
+      document.getElementById('threshold').addEventListener('input', function () {
+        document.getElementById('threshold-value').textContent = this.value;
+        document.getElementById('result-threshold').textContent = this.value;
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+      crossorigin="anonymous"></script>
 </body>
+
 </html>
