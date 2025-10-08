@@ -113,14 +113,14 @@ input[type="file"] {
   color: #555;
 }
 
-.breakdown, .score-contribution, .threshold-details, .risk-level {
+.breakdown, .score-contribution, .threshold-details, .risk-level, .email-details {
   background: #fff;
   border-radius: 8px;
   padding: 14px 16px;
   margin-bottom: 16px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
-.breakdown h4, .score-contribution h4, .threshold-details h4, .risk-level h4 {
+.breakdown h4, .score-contribution h4, .threshold-details h4, .risk-level h4, .email-details h4 {
   margin: 0 0 8px 0;
   font-size: 1.05em;
   color: #333;

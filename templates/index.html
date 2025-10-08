@@ -96,14 +96,20 @@
 
 <script>
   function add_results(response) {
+    console.log(response);
     for (let i = 0; i < response.length; i++) {
       if (i == 0) {
         // At least 1 carousel item needs "active" class
         var active_carouselHTML = `
           <div class="carousel-item active">
+            <div class="email-details">
+              <h4>Email ${i+1} details</h4>
+              <p><strong>Sender:</strong> ${response[i].sender}</p>
+              <p><strong>Subject:</strong> ${response[i].subject}</p>
+            </div>
             <div class="risk-level">
               <h4>Analysis</h4>
-              <p>Score: ${response[i].score} (${response[i].risk_level})</p>
+              <p><strong>Score:</strong> ${response[i].score} (${response[i].risk_level})</p>
             </div>
             <div class="breakdown">
               <h4>Breakdown (indicators)</h4>
@@ -115,9 +121,14 @@
         } else {
           var carouselHTML = `
           <div class="carousel-item">
+            <div class="email-details">
+              <h4>Email ${i+1} details</h4>
+              <p><strong>Sender:</strong> ${response[i].sender}</p>
+              <p><strong>Subject:</strong> ${response[i].subject}</p>
+            </div>
             <div class="risk-level">
               <h4>Analysis</h4>
-              <p>Score: ${response[i].score} (${response[i].risk_level})</p>
+              <p><strong>Score:</strong> ${response[i].score} (${response[i].risk_level})</p>
             </div>
             <div class="breakdown">
               <h4>Breakdown (indicators)</h4>
