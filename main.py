@@ -6,7 +6,7 @@ from difflib import SequenceMatcher
 import math
 
 # Import rules
-import SAKETHdomainchecker as domain_check
+import domain_checker_rules as domain_check
 import url_buzzwords_rules as buzzword_check
 
 class PhishingDetector:
