@@ -19,10 +19,9 @@ class PhishingDetector:
 
     def __checkdomains__(self):
         count = 0
-        for sender, domain in zip(self.senders, self.domains):
+        for domain in self.domains:
             count += 1
-            print(f"Domain check for email {count}:")
-            domain_pts, domain_reasons = domain_check.calculate_score_domain(sender, domain)
+            domain_pts, domain_reasons = domain_check.calculate_score_domain(domain)
             self.__recorddomainresults__(domain_pts, domain_reasons)
 
     def __recorddomainresults__(self, domain_pts, domain_reasons):
