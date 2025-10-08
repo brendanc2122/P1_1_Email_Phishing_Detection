@@ -38,9 +38,11 @@
               contentType: false,
               // If succeessful, adds response to element with id test_result
               success: function(response) {
-                var response_parts = response.split('|')
-                document.getElementById("test-score").innerHTML = response_parts[0];
-                document.getElementById("test-reasons").innerHTML = response_parts[1];
+                alert("Success")
+                console.log(response)
+                // var response_parts = response.split('|');
+                // document.getElementById("test-score").innerHTML = response_parts[0];
+                // document.getElementById("test-reasons").innerHTML = response_parts[1];
               },
               // Else, show error message
               error: function(error) {
