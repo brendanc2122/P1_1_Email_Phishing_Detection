@@ -1,3 +1,4 @@
+from ast import pattern
 import pandas as pd
 import os
 import numpy as np
@@ -47,14 +48,30 @@ def create_dataframe_from_group(uploaded_files_list):
     
     subjects = []
     senders = []
+    domains = []
     bodies = []
     raw_emails_list = get_raw_emails()
 
     for raw_email_content in raw_emails_list:
         try:
             msg = parser.Parser().parsestr(raw_email_content)
-            senders.append(msg['From'])
-            subjects.append(msg['Subject'])
+            # Extract sender name, sender email domain and subject
+            # If any of these fields are missing, assign None
+            sender = msg['From'] if msg['From'] else ""
+            subject = msg['Subject'] if msg['Subject'] else ""
+
+            # Use regex to remove trailing < and > from sender's email address if present
+            # At the same time, if < and > are present, extract the email
+            # address within them as sender_domain
+            address_arrow_pattern = r"<([^>]*)>"
+            remove_address_pattern = r"<[^>]*>"
+            sender_domain = (re.search(address_arrow_pattern, sender).group(1)
+                             if sender and re.search(address_arrow_pattern, sender) else "")
+            sender = re.sub(remove_address_pattern, "", sender) if sender else ""
+
+            senders.append(sender)
+            domains.append(sender_domain)
+            subjects.append(subject)
 
             # Extract body, handling multipart emails
             body = ""
@@ -83,17 +100,19 @@ def create_dataframe_from_group(uploaded_files_list):
         except Exception as e:
             print(f"Error parsing email: {e}")
             senders.append(None)
+            domains.append(None)
             subjects.append(None)
             bodies.append(None)
     
     # Create a pandas DataFrame from the email data
     df_emails = pd.DataFrame({
         'sender': senders,
+        'domain': domains,
         'subject': subjects,
         'body': bodies
     })
 
     # Save the pandas DataFrame to a CSV file
     # df_emails.to_csv('csv_files/user_data.csv',mode='w',index=False)
-    
+
     return df_emails

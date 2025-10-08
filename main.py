@@ -13,15 +13,16 @@ class PhishingDetector:
     def __init__(self, dataframe):
         self.dataframe = dataframe
         self.senders = [row['sender'] for index, row in self.dataframe.iterrows()]
+        self.domains = [row['domain'] for index, row in self.dataframe.iterrows()]
         self.subjects = [row['subject'] for index, row in self.dataframe.iterrows()]
         self.bodies = [row['body'] for index, row in self.dataframe.iterrows()]
 
     def __checkdomains__(self):
         count = 0
-        for sender in self.senders:
+        for sender, domain in zip(self.senders, self.domains):
             count += 1
             print(f"Domain check for email {count}:")
-            domain_pts, domain_reasons = domain_check.calculate_score_domain(sender)
+            domain_pts, domain_reasons = domain_check.calculate_score_domain(sender, domain)
             self.__recorddomainresults__(domain_pts, domain_reasons)
 
     def __recorddomainresults__(self, domain_pts, domain_reasons):
