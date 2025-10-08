@@ -65,6 +65,7 @@ class PhishingDetector:
             reasons = self.domain_reasons[i] + self.buzzword_reasons[i]
             results.append({
                 "sender": self.senders[i],
+                "domain": self.domains[i],
                 "subject": self.subjects[i],
                 "body": self.bodies[i],
                 "score": total_score,

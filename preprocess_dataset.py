@@ -27,7 +27,7 @@ def create_dataframe_from_group(uploaded_files_list):
 
         return raw_emails
     
-    def clean_body_2(body):
+    def clean_body(body):
         # Extract the link from <a href > element
         body = re.sub(r'<a.+href="|">|</a>', "", body, flags=re.IGNORECASE)
 
@@ -59,7 +59,9 @@ def create_dataframe_from_group(uploaded_files_list):
             # If any of these fields are missing, assign None
             sender = msg['From'] if msg['From'] else ""
             subject = msg['Subject'] if msg['Subject'] else ""
+            subjects.append(subject)
 
+            # Clean sender and domain
             # Use regex to remove trailing < and > from sender's email address if present
             # At the same time, if < and > are present, extract the email
             # address within them as sender_domain
@@ -71,7 +73,6 @@ def create_dataframe_from_group(uploaded_files_list):
 
             senders.append(sender)
             domains.append(sender_domain)
-            subjects.append(subject)
 
             # Extract body, handling multipart emails
             body = ""
@@ -95,7 +96,7 @@ def create_dataframe_from_group(uploaded_files_list):
                 except:
                     body = msg.get_payload(decode=True).decode('latin-1', errors='ignore')
 
-            bodies.append(clean_body_2(body))
+            bodies.append(clean_body(body))
 
         except Exception as e:
             print(f"Error parsing email: {e}")
