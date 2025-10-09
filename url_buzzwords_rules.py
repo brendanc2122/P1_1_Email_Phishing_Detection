@@ -125,14 +125,48 @@ def compile_buzzword_patterns() -> Dict:
                 'united states postal service','usps','shipping department',
                 'delivery team','courier service','parcel service'
             ]
-        }
+        },
+        'tier1_blacklist': {
+            'weight': 10,
+            'words': [
+                # adult / explicit
+                "sex", "sexy", "porn", "pornstar", "pr0n", "xxx", "nude", "nudes",
+                "erotic", "escort", "cam", "camgirl", "camguy", "onlyfans", "ofans",
+                "sugarbaby", "sugardaddy", "milf", "bdsm", "fetish", "asshole", "blowjob", "cum", "cocksuck",
+
+                # piracy / hacking
+                "pirate", "piracy", "warez", "crack", "cracked", "keygen", "serials",
+                "torrent", "leak", "leaker", "leakz", "hack", "hacker", "h4ck",
+                "exploit", "zeroday", "botnet", "stealer", "phish", "scammer", "spammer",
+
+                #urgent / scammy
+                "urgent", "immediate", "asap", "attention", "important", "alert", "alerts",
+                "winner", "winners", "prize", "prizes", "congrats", "lottery", "lotto",
+                "claim", "claims", "reward", "rewards", "bonus", "bonuses", "cash", "money", "rich", "wealth", "million", "billion"
+                ]
+        },
     }
 
     # Compile one regex per category; spaces -> \s+ to match odd whitespace/newlines.
+    # Compile one regex per category; treat spaces as whitespace OR hyphen OR underscore.
+    # Compile one regex per category; treat spaces as whitespace OR hyphen OR underscore.
     for data in categories.values():
-        escaped = [re.sub(r"\s+", r"\\s+", re.escape(w)) for w in data['words']]
+        escaped = []
+        joiner = r"(?:\s+|[-_])+"
+        for w in data['words']:
+            # Split only on spaces in the source phrase
+            parts = re.split(r"\s+", w.strip())
+            parts_esc = [re.escape(p) for p in parts if p]
+            if not parts_esc:
+                continue
+            # Rejoin tokens with a flexible separator class
+            escaped.append(joiner.join(parts_esc))
+
         data['pattern'] = re.compile(r"\b(?:%s)\b" % "|".join(escaped), re.IGNORECASE)
+
+
     return categories
+
 
 buzzword_categories = compile_buzzword_patterns()
 
@@ -361,20 +395,47 @@ def detect_phishing_comprehensive(subject: str, body: str, urls: Optional[List[s
     total_url = 0.0
     url_reasons: List[str] = []
     hard_high = False
+    
+        # --- Tier-1 buzzword: add extra score (no auto-high) ---
+    tier1_pat = buzzword_categories['tier1_blacklist']['pattern']
+    tier1_hits_subj = len(tier1_pat.findall(subject))
+    tier1_hits_body = len(tier1_pat.findall(body))
+    tier1_hits = tier1_hits_subj + tier1_hits_body
+
+    # Add a small extra bump per hit (on top of category scoring), capped
+    # Tune these numbers to taste
+    TIER1_BONUS_PER_HIT = 2.0
+    TIER1_BONUS_CAP = 6.0  # max extra
+
+    tier1_bonus = min(tier1_hits * TIER1_BONUS_PER_HIT, TIER1_BONUS_CAP)
+    if tier1_bonus:
+        # add to the BODY text score (or you can add to s_score; either is fine)
+        b_score += tier1_bonus
+        b_patterns.append(f"Tier-1 blacklist bonus: {tier1_hits} hit(s) (+{tier1_bonus:g})")
+
 
     for u in urls:
         url_score, reasons = analyze_url_risk(u, is_subject=(u in subject))
         total_url += url_score
         url_reasons.extend(reasons)
 
-        # Hard-stop conditions → force HIGH
         d = extract_domain(u)
         if ip_pattern.search(u) or check_homograph_attack(d) or any(domain_matches(s, d) for s in suspicious_domains):
             hard_high = True
 
     total = round(s_score + b_score + total_url, 2)
-    reasons = [s_patterns, b_patterns, url_reasons]
-    return total, reasons
+    bucket = "high" if hard_high else risk_bucket(total)
+
+    return {
+        "total_risk_score": total,
+        "risk_level": bucket,
+        "subject_analysis": s_patterns,
+        "body_analysis": b_patterns,
+        "url_analysis": url_reasons,
+        "urls_found": urls,
+        "hard_high_triggered": hard_high,
+    }
+
 # -----------------------------
 # BATCH AND CACHE UTILITIES
 # -----------------------------
