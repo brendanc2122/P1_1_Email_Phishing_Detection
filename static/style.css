@@ -126,6 +126,20 @@ input[type="file"] {
   color: #222;
 }
 
+#results-carousel {
+  width: 100%;
+  padding: 10px 0;
+  box-sizing: border-box;
+  align-items: center;
+}
+
+#carousel-buttons-left, #carousel-buttons-right {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: flex-end;
+  margin-bottom: 5px;
+}
+
 .threshold-label {
   font-size: 0.98em;
   color: #6366f1;
@@ -149,10 +163,10 @@ input[type="file"] {
   color: #333;
 }
 
-#carousel-buttons {
-    margin-top: 2px;
-    bottom: 10px;
-}
+/* .results-carousel-button {
+    left: -10% !important;
+    width: 115% !important;
+} */
 
 .threshold-details ul {
   margin: 0;
