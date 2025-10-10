@@ -11,7 +11,18 @@ from urllib.parse import urlparse, urlsplit
 # =============================
 
 ip_pattern = re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b')
+# Strict scheme URLs (http/https)
 url_pattern = re.compile(r'https?://[^\s<>"]+', re.IGNORECASE)
+# Bare domains + optional path; also catches www.*
+bare_domain_pattern = re.compile(
+    r'''(?ix)
+    \b
+    (?:www\.)?
+    (?:[a-z0-9-]+\.)+[a-z]{2,}
+    (?:/[^\s<>"']*)?
+    \b
+    '''
+)
 
 # URL phrase patterns (kept separate for clarity)
 suspicious_patterns = [
@@ -139,31 +150,25 @@ def compile_buzzword_patterns() -> Dict:
                 "torrent", "leak", "leaker", "leakz", "hack", "hacker", "h4ck",
                 "exploit", "zeroday", "botnet", "stealer", "phish", "scammer", "spammer",
 
-                #urgent / scammy
+                # urgent / scammy
                 "urgent", "immediate", "asap", "attention", "important", "alert", "alerts",
                 "winner", "winners", "prize", "prizes", "congrats", "lottery", "lotto",
                 "claim", "claims", "reward", "rewards", "bonus", "bonuses", "cash", "money", "rich", "wealth", "million", "billion"
-                ]
+            ]
         },
     }
 
-    # Compile one regex per category; spaces -> \s+ to match odd whitespace/newlines.
-    # Compile one regex per category; treat spaces as whitespace OR hyphen OR underscore.
-    # Compile one regex per category; treat spaces as whitespace OR hyphen OR underscore.
+    # Compile regex per category; treat spaces as whitespace OR hyphen OR underscore.
     for data in categories.values():
         escaped = []
         joiner = r"(?:\s+|[-_])+"
         for w in data['words']:
-            # Split only on spaces in the source phrase
             parts = re.split(r"\s+", w.strip())
             parts_esc = [re.escape(p) for p in parts if p]
             if not parts_esc:
                 continue
-            # Rejoin tokens with a flexible separator class
             escaped.append(joiner.join(parts_esc))
-
         data['pattern'] = re.compile(r"\b(?:%s)\b" % "|".join(escaped), re.IGNORECASE)
-
 
     return categories
 
@@ -181,11 +186,6 @@ def load_domain_lists(suspicious: List[str], safe: List[str]):
     safe_domains = set(d.lower().rstrip('.') for d in safe)
 
 def load_trusted_from_json(path: str = "whitelist.json", replace: bool = False) -> None:
-    """
-    Load trusted domains from JSON and merge/replace the global trusted_domains set.
-    Accepts:
-      { "domains": ["a.com", "b.sg"] }  or  [ "a.com", "b.sg" ]  or  [{ "domain": "a.com" }, ...]
-    """
     global trusted_domains
     p = Path(path)
     data = json.loads(p.read_text(encoding="utf-8"))
@@ -226,7 +226,7 @@ def domain_matches(base: str, host: str) -> bool:
     return host == base or host.endswith('.' + base)
 
 def check_homograph_attack(domain: str) -> bool:
-    # Common Cyrillic lookalikes, etc.
+    # Common Cyrillic lookalikes, etc. (quick heuristic)
     suspicious_chars = ['а','о','р','е','х','у','с','н','к','і']
     return any(ch in domain for ch in suspicious_chars)
 
@@ -241,16 +241,38 @@ def shannon_entropy(s: str) -> float:
     return -sum((c/len(s))*log2(c/len(s)) for c in freqs.values())
 
 def defang_to_urlish(text: str) -> str:
-    """Turn defanged indicators into URL-ish text so url_pattern can catch them."""
+    """
+    Turn defanged indicators into URL-ish text so extractors can catch them.
+    Handles: hxxp(s)://, [.] , (.) , {dot} , [dot] , ' dot ', spaced 'www . '
+    """
     t = text
-    t = re.sub(r'hx+tp(s?)://', r'http\1://', t, flags=re.IGNORECASE)
-    t = re.sub(r'\[\.\]|\(dot\)|\s+dot\s+', '.', t, flags=re.IGNORECASE)
-    t = re.sub(r'(?<!\w)w{3}\s*\.(?=\w)', 'www.', t, flags=re.IGNORECASE)
+    # hxxp / hxxps -> http / https
+    t = re.sub(r'(?i)\bhx+tp(s?)://', r'http\1://', t)
+    # [.] (.) {dot} [dot] " dot " -> .
+    t = re.sub(r'(?i)\[\s*\.\s*\]|\(\s*\.\s*\)|\{\s*dot\s*\}|\[\s*dot\s*\]|\s+dot\s+', '.', t)
+    # recover "www . example . com" -> "www.example.com"
+    t = re.sub(r'(?i)\bwww\s*\.\s*(?=\w)', 'www.', t)
     return t
 
 def extract_urls(subject: str, body: str) -> List[str]:
+    """
+    Extract URLs from subject/body, including defanged and bare domains.
+    Normalizes bare domains to http:// for consistent downstream parsing.
+    """
     merged = defang_to_urlish(subject + " " + body)
-    return url_pattern.findall(merged)
+
+    hits = set(url_pattern.findall(merged))
+
+    # pick up bare domains & www.*
+    for m in bare_domain_pattern.findall(merged):
+        if not m.lower().startswith(('http://', 'https://')):
+            hits.add('http://' + m)
+        else:
+            hits.add(m)
+
+    # strip trivial trailing punctuation
+    cleaned = [u.rstrip('.,);]}>') for u in hits]
+    return sorted(set(cleaned))
 
 # =============================
 # URL RISK ANALYSIS
@@ -266,6 +288,12 @@ def analyze_url_risk(url: str, is_subject: bool=False) -> Tuple[float, List[str]
     reasons: List[str] = []
 
     domain = extract_domain(url)
+    pathq = ''
+    try:
+        sp = urlsplit(url if url.startswith(('http://','https://')) else f'http://{url}')
+        pathq = (sp.path or '') + (('?' + sp.query) if sp.query else '')
+    except Exception:
+        pass
 
     # Trusted / safe (exact or subdomain)
     if any(domain_matches(t, domain) for t in trusted_domains):
@@ -306,21 +334,19 @@ def analyze_url_risk(url: str, is_subject: bool=False) -> Tuple[float, List[str]
         reasons.append(f"Suspicious TLD ({tld})")
 
     # Entropy & sensitive terms in path/query
-    sp = urlsplit(url)
-    pathq = (sp.path or '') + (('?' + sp.query) if sp.query else '')
     if len(pathq) >= 20 and shannon_entropy(pathq) >= 4.0:
         score += 1.5 * m
         reasons.append("High-entropy path/query")
 
     SUSP_PATH_TERMS = {'login','signin','verify','account','secure','auth','update','confirm','password','reset'}
-    pq = pathq.lower()
+    pq = (pathq or '').lower()
     path_hits = [w for w in SUSP_PATH_TERMS if w in pq]
     if path_hits:
         add = min(len(path_hits), 3) * 0.8 * m
         score += add
         reasons.append(f"Sensitive terms in path/query: {', '.join(sorted(path_hits))} (+{add:g})")
 
-    # Hyphen count
+    # Hyphen count (domain only)
     hy = domain.count('-')
     if hy > 3:
         score += 1.5 * m
@@ -386,38 +412,39 @@ def risk_bucket(score: float) -> str:
     return "low"
 
 def detect_phishing_comprehensive(subject: str, body: str, urls: Optional[List[str]] = None) -> Dict:
+    # Auto-extract if urls is None; if caller passes [], we still respect it
     if urls is None:
         urls = extract_urls(subject, body)
 
     s_score, s_patterns = analyze_text_patterns(subject, 1.2)
     b_score, b_patterns = analyze_text_patterns(body, 1.0)
 
-    total_url = 0.0
-    url_reasons: List[str] = []
-    hard_high = False
-    
-        # --- Tier-1 buzzword: add extra score (no auto-high) ---
+    # --- Tier-1 buzzword: add extra score (no auto-high) ---
     tier1_pat = buzzword_categories['tier1_blacklist']['pattern']
     tier1_hits_subj = len(tier1_pat.findall(subject))
     tier1_hits_body = len(tier1_pat.findall(body))
     tier1_hits = tier1_hits_subj + tier1_hits_body
 
-    # Add a small extra bump per hit (on top of category scoring), capped
-    # Tune these numbers to taste
     TIER1_BONUS_PER_HIT = 2.0
     TIER1_BONUS_CAP = 6.0  # max extra
 
     tier1_bonus = min(tier1_hits * TIER1_BONUS_PER_HIT, TIER1_BONUS_CAP)
     if tier1_bonus:
-        # add to the BODY text score (or you can add to s_score; either is fine)
         b_score += tier1_bonus
         b_patterns.append(f"Tier-1 blacklist bonus: {tier1_hits} hit(s) (+{tier1_bonus:g})")
 
+    total_url = 0.0
+    url_reasons: List[str] = []
+    hard_high = False
 
     for u in urls:
         url_score, reasons = analyze_url_risk(u, is_subject=(u in subject))
         total_url += url_score
-        url_reasons.extend(reasons)
+        # Always record a readable line per URL
+        if reasons:
+            url_reasons.append(f"URL: {u} — " + "; ".join(reasons) + f" ( +{round(url_score, 2)} )")
+        else:
+            url_reasons.append(f"URL: {u} — no obvious risk ( +0 )")
 
         d = extract_domain(u)
         if ip_pattern.search(u) or check_homograph_attack(d) or any(domain_matches(s, d) for s in suspicious_domains):
@@ -443,10 +470,13 @@ def detect_phishing_comprehensive(subject: str, body: str, urls: Optional[List[s
 def batch_analyze(emails: List[Dict]) -> List[Dict]:
     results = []
     for i, e in enumerate(emails):
+        provided_urls = e.get('urls')
+        # If missing or empty list, use auto-extraction by passing None
+        urls_arg = None if (provided_urls is None or provided_urls == []) else provided_urls
         r = detect_phishing_comprehensive(
             e.get('subject', ''),
             e.get('body', ''),
-            e.get('urls', [])
+            urls=urls_arg
         )
         r['email_id'] = e.get('id', i)
         results.append(r)
@@ -459,20 +489,19 @@ def clear_cache():
 # MAIN (quick demo)
 # =============================
 
-# if __name__ == "__main__":
-#     # # Load your JSON whitelist next to this file (like in your screenshot)
-#     # try:
-#     #     load_trusted_from_json(Path(__file__).with_name("whitelist.json"), replace=True)
-#     # except Exception as e:
-#     #     print("Whitelist load note:", e)
+if __name__ == "__main__":
+    # Load your JSON whitelist next to this file (optional)
+    try:
+        load_trusted_from_json(Path(__file__).with_name("whitelist.json"), replace=True)
+    except Exception as e:
+        print("Whitelist load note:", e)
 
-#     # # You can also load safe/suspicious lists if you have them:
-#     # # load_domain_lists(suspicious=["phishing-site.com","fake-bank.net"], safe=["trusted-site.org"])
+    # Example with defanged URL
+    subj = "URGENT: Your account will be suspended - Act now!"
+    body = """Verify immediately at hxxp://fake-bank[.]net/login-verify-urgent
+              Use your one-time password: 123456 to confirm."""
 
-#     # subj = "URGENT: Your account will be suspended - Act now!"
-#     # body = """Verify immediately at hxxp://fake-bank[.]net/login-verify-urgent
-#     #           Use your one-time password: 123456 to confirm."""
-#     # res = detect_phishing_comprehensive(subj, body)
-#     # print(res["risk_level"], res["total_risk_score"])
-#     # for line in res["subject_analysis"] + res["body_analysis"] + res["url_analysis"]:
-#     #     print("-", line)
+    res = detect_phishing_comprehensive(subj, body)
+    print(res["risk_level"], res["total_risk_score"])
+    for line in res["subject_analysis"] + res["body_analysis"] + res["url_analysis"]:
+        print("-", line)
