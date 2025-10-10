@@ -55,7 +55,7 @@ TIER1_BLACKLIST = {
     #urgent / scammy
     "urgent", "immediate", "asap", "attention", "important", "alert", "alerts",
     "winner", "winners", "prize", "prizes", "congrats", "lottery", "lotto",
-    "claim", "claims", "reward", "rewards", "bonus", "bonuses", "cash", "money", "rich", "wealth", "million", "billion"
+    "claim", "claims", "reward", "rewards", "bonus", "bonuses", "cash", "money", "rich", "million", "billion"
 }
 
 #---------------------------------------------------------------------------------HELPER FUNCTIONS---------------------------------------------------------------------------------
