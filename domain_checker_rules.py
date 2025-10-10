@@ -203,7 +203,7 @@ def load_bad_domains(file_path: str) -> set:
                 continue
             bad_domains.add(domain)
 
-    print(f"[badlist] Loaded {len(bad_domains)} domains from {file_path}")
+    # print(f"[badlist] Loaded {len(bad_domains)} domains from {file_path}")
     return bad_domains
 
 # Helper to extract registrable domain and SLD without external dependencies, for RULE 1
@@ -919,7 +919,6 @@ def calculate_score_domain(sender):
     skip_more_domain = False
     # ---- EXACT MATCH CHECK (no subdomain allowed) ----
     # If domain exactly equals a whitelist entry -> immediate exit with points = 0, move on to username checks
-    print("Checking exact whitelist match...")
     if domain in WHITELIST:
         #exit to local part checks
         reasons.append(f"Domain {domain} is an exact whitelist match, skipping further domain checks.")
@@ -933,111 +932,94 @@ def calculate_score_domain(sender):
         # continue program: add your scoring/heuristics here
         # e.g., compute score = analyze_sender_email(sender) ...
 
-        print("Check for domain blacklist Match")
         badset = load_bad_domains("phishing-domains-ACTIVE.txt")
         if is_bad_domain(domain, badset):
-            reasons.append(f"⚠️ Domain {domain} is in the blacklist!, points added = 50.")
+            reasons.append(f"Domain {domain} is in the blacklist!, points added = 50.")
             add_points(60)  # example penalty for bad domain
 
     # pattern recognition code
 
         # check for explicit tier 1 blacklist terms in domain
-        print("Check for explicit tier 1 blacklist terms in domain...")
         pts, happy = check_tier1_blacklist_multi(local, 10,False)
         if pts > 0:
             reasons.append(f"Tier 1 Blacklisted Terms Detected: {happy}, points added = {pts}.")
             add_points(pts)
 
         # check long domain
-        print("Check for long domain / many labels...")
         pts, happy = check_domain_length(domain)   
         if pts > 0:
             reasons.append(f"Long domain/Excessive Labels detected:, {happy}, points added = {pts}.")
             add_points(pts)
         
         # check improper brand token
-        print("Check for improper brand token")
         pts, happy = check_brand_token(domain, WHITELIST)
         if pts > 0:
             reasons.append(f"Improper Brand Token Detected: {happy}, points added = {pts}.")
             add_points(pts)
 
         # Detect domains that append "action/update" tokens to brand names
-        print("Detect domains that append \"action/update\" or other Scam tokens to brand names\n")
         pts, happy = check_brand_action_domain(domain, WHITELIST)
         if pts > 0:
             reasons.append(f"Scam Token appended to official brand domain detected: {happy}, points added = {pts}.")
             add_points(pts)
 
         # Typosquatting (single-character change / small edits)
-        print("Check for typosquatting (single-character edits)")
         pts, happy = check_typosquat_domain(domain, WHITELIST)  
         if pts > 0:
             reasons.append(f"Typosquatting detected: {happy}, points added = {pts}.")
             add_points(pts)
         
         # Suspicious TLDs detection
-        print("Check for suspicious Top Level Domains...")
         pts, happy  = check_suspicious_tld(domain)
         if pts > 0:
             reasons.append(f"Suspicious Top Level Domain detected: {happy}, points added = {pts}.")
             add_points(pts)
 
         #Many hyphens / long multi-part SLDs
-        print("Check for many hyphens / long multi-part Small Level Domains")
         pts, happy = check_hyphenated_sld(domain)
         if pts > 0:
             reasons.append(f"Many hyphens / long multi-part Small Level Domains detected: {happy}, points added = {pts}.")
             add_points(pts)
 
         #Check if domain is an IP literal
-        print("Check if domain is an IP literal")
         pts, happy = check_ip_as_domain(domain)
         if pts > 0:
             reasons.append(f"IP Literal Domain detected: {happy}, points added = {pts}.")
             add_points(pts)
-        
-    print("Starting Local Part Checks...\n")
+
 
     # ---- LOCAL PART CHECKS ----
     
     #Tier 1 Blacklisted Word Check
-    print("Detecting Tier 1 Blacklisted Terms in local-part")
     pts, happy = check_tier1_blacklist_multi(local, 10,False)
     if pts > 0:
         reasons.append(f"Tier 1 Blacklisted Terms Detected: {happy}, points added = {pts}.")
         add_points(pts)
 
     #Local part check for Generic Action Words
-    print("Detecting domains that append \"action/update\" or other Scam tokens to brand names")
-    pts, happy = check_brand_action_domain(local, WHITELIST)
     if pts > 0:
         reasons.append(f"Scam Token appended to official brand local detected: {happy}, points added = {pts}.")
         add_points(pts)
 
     #Local-part equals brand while domain doesn’t match official brand domain
-    print("Checking if local-part equals brand while domain doesn't match official brand domain")
     pts, happy = local_equals_brand_rule(local,domain,BRAND_KEYWORDS,WHITELIST,FREEMAIL_DEFAULT)
     if pts > 0:
         reasons.append(f"Local-part equals brand while domain doesn't match official brand domain: {happy}, points added = {pts}.")
         add_points(pts)
 
     #Long random / high-entropy local-parts
-    print("Detecting long random / high-entropy local-parts")
     pts, happy = check_long_random_local(local)
     if pts > 0:
         reasons.append(f"Long random / high-entropy local-parts detected: {happy}, points added = {pts}.")
         add_points(pts)
     
     #Many dots / punctuation / unusual chars
-    print("Detecting many dots / punctuation / unusual chars in local-part")
     pts, happy = check_unusual_local(local)
     if pts > 0:
         reasons.append(f"Many dots / punctuation / unusual chars in local-part detected: {happy}, points added = {pts}.")
         add_points(pts) 
 
     #Detect Numeric Heavy or timestamp like local parts
-    print("Detecting Numeric Heavy or timestamp-like local part")
     pts, happy = check_numeric_heavy_local(local)
     if pts > 0:
         reasons.append(f"Numeric Heavy or timestamp-like local part detected: {happy}, points added = {pts}.")

@@ -32,7 +32,6 @@ class PhishingDetector:
         count = 0
         for subject, body in zip(self.subjects, self.bodies):
             count += 1
-            print(f"Buzzword check for email {count}:")
             res = buzzword_check.detect_phishing_comprehensive(subject, body)
 
             # New API: dict return
@@ -49,12 +48,9 @@ class PhishingDetector:
 
             self.__recordbuzzwordresults__(buzzword_pts, buzzword_reasons)
 
-
-
     def __recordbuzzwordresults__(self, buzzword_pts, buzzword_reasons):
         self.buzzword_pts.append(buzzword_pts)
         self.buzzword_reasons.append(buzzword_reasons)
-
 
     def __calculate_risklevel__(self, score):
         if score <= 19:
@@ -68,7 +64,7 @@ class PhishingDetector:
         else:
             return "Phishing"
 
-    def __formatresults__(self):
+    def __formatresults__(self, cmd):
         results = []
 
         all_lengths_same = (
@@ -76,19 +72,23 @@ class PhishingDetector:
             len(self.senders) == len(self.subjects) == len(self.bodies)
         )
         assert all_lengths_same, "Length of lists are not the same!"
-
-        for i in range(len(self.domain_pts)):
-            total_score = self.domain_pts[i] + self.buzzword_pts[i]
-            reasons = self.domain_reasons[i] + self.buzzword_reasons[i]
-            results.append({
-                "sender": self.senders[i],
-                "domain": self.domains[i],
-                "subject": self.subjects[i],
-                "body": self.bodies[i],
-                "score": total_score,
-                "reasons": reasons,
-                "risk_level": self.__calculate_risklevel__(total_score)
-            })
+        if cmd == "quick": # Only return scores for comparison with testing dataset
+            for i in range(len(self.domain_pts)):
+                total_score = self.domain_pts[i] + self.buzzword_pts[i]
+                results.append(total_score)
+        else:
+            for i in range(len(self.domain_pts)):
+                total_score = self.domain_pts[i] + self.buzzword_pts[i]
+                reasons = self.domain_reasons[i] + self.buzzword_reasons[i]
+                results.append({
+                    "sender": self.senders[i],
+                    "domain": self.domains[i],
+                    "subject": self.subjects[i],
+                    "body": self.bodies[i],
+                    "score": total_score,
+                    "reasons": reasons,
+                    "risk_level": self.__calculate_risklevel__(total_score)
+                })
         return results
     
     def analyse(self):
@@ -101,3 +101,15 @@ class PhishingDetector:
         self.__checkbuzzwords__()
         output = self.__formatresults__()
         return output
+    
+    def only_return_points(self):
+        self.domain_pts = []
+        self.domain_reasons = []
+        self.buzzword_pts = []
+        self.buzzword_reasons = []
+
+        self.__checkdomains__()
+        self.__checkbuzzwords__()
+        output = self.__formatresults__('quick')
+        return output
+        
