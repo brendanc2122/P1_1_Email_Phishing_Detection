@@ -12,6 +12,7 @@ import url_buzzwords_rules as buzzword_check
 class PhishingDetector:
     def __init__(self, dataframe):
         self.dataframe = dataframe
+        self.command = ''
         self.senders = [row['sender'] for index, row in self.dataframe.iterrows()]
         self.domains = [row['domain'] for index, row in self.dataframe.iterrows()]
         self.subjects = [row['subject'] for index, row in self.dataframe.iterrows()]
@@ -64,7 +65,7 @@ class PhishingDetector:
         else:
             return "Phishing"
 
-    def __formatresults__(self, cmd):
+    def __formatresults__(self):
         results = []
 
         all_lengths_same = (
@@ -72,7 +73,7 @@ class PhishingDetector:
             len(self.senders) == len(self.subjects) == len(self.bodies)
         )
         assert all_lengths_same, "Length of lists are not the same!"
-        if cmd == "quick": # Only return scores for comparison with testing dataset
+        if self.command == "quick": # Only return scores for comparison with testing dataset
             for i in range(len(self.domain_pts)):
                 total_score = self.domain_pts[i] + self.buzzword_pts[i]
                 results.append(total_score)
@@ -103,6 +104,7 @@ class PhishingDetector:
         return output
     
     def only_return_points(self):
+        self.command = "quick"
         self.domain_pts = []
         self.domain_reasons = []
         self.buzzword_pts = []
@@ -110,6 +112,6 @@ class PhishingDetector:
 
         self.__checkdomains__()
         self.__checkbuzzwords__()
-        output = self.__formatresults__('quick')
+        output = self.__formatresults__()
         return output
         

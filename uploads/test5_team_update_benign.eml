@@ -1,0 +1,23 @@
+Return-Path: <anna.lee@example.org>
+Received: from mail.example.org (mail.example.org [192.0.2.50])
+	by mx.example.com with ESMTPS id 24680
+	for <you@example.com>; Fri, 10 Oct 2025 12:54:50 +0800
+From: Anna Lee <anna.lee@example.org>
+To: you@example.com
+Subject: Team update: meeting notes and next steps
+Date: Fri, 10 Oct 2025 12:54:50 +0800
+Message-ID: <20251010125450@example.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+
+Hi team,
+
+Thanks for the productive meeting today. Key takeaways:
+- PR #142 will be merged tomorrow.
+- Please review the attached agenda for next week (in the shared drive).
+- No action needed today; we'll sync on Monday.
+
+No external links; reply-all if you have questions.
+
+Best,
+Anna
