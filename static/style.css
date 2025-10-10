@@ -66,7 +66,7 @@ h2 {
 
 /* Standardized button styles */
 .upload-btn {
-  background: #6366f1;
+  background: #ff0000;
   color: #ffffff;
   padding: 2.5px 2.5px;
   border: none;
@@ -106,7 +106,7 @@ input[type="file"] {
   margin-right: 20px;
   padding: 2.5px 2.5px;
   display: inline-block;
-  min-width: 300px;
+  min-width: 325px;
   text-align: center;
   font-family: 'Segoe UI', Arial, sans-serif;
 }
