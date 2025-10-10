@@ -23,9 +23,11 @@
       </center>
 
       <form id="uploadForm">
+        <!--Upload Single or Multiple Files -->
         <center>
-          <input type="file" id="filesInput" class="custom-btn" enctype="multipart/form-data" multiple
+          <input type="file" id="filesInput" class="custom-btn" hidden enctype="multipart/form-data" multiple
             accept=".txt,.eml">
+          <label for="filesInput" class="custom-btn">Choose Files</label>
           <button type="submit" class="upload-btn">Upload</button>
         </center>
         <script>
@@ -55,17 +57,24 @@
           })
         </script>
       </form>
+
       <form id="uploadFolderForm">
+        <!-- Upload Folder Button -->
         <center>
-          <input type="file" id="folderInput" class="custom-btn" enctype="multipart/form-data" multiple webkitdirectory>
-          <button type="submit" class="upload-btn">Upload</button>
+          <div class="folder-picker">
+            <input id="folderPicker" type="file" enctype="multipart/form-data" multiple hidden webkitdirectory
+              accept=".txt,.eml">
+            <label for="folderPicker" class="folder-btn">Choose folder</label>
+            <button type="submit" class="upload-btn">Upload</button>
+          </div>
         </center>
+
         <script>
           // Preprocess folder upload
           document.getElementById("uploadFolderForm").addEventListener("submit", function (event) {
             event.preventDefault();
             var userData = new FormData();
-            var files = document.getElementById("folderInput").files;
+            var files = document.getElementById("folderPicker").files;
             for (var x = 0; x < files.length; x++) {
               userData.append('file', files[x]);
             }
@@ -89,6 +98,7 @@
         </script>
       </form>
 
+      <!-- Carousel to display anaylsis -->
       <div class="result-panel">
         <h1>Results</h1>
         <div class="result-header">
@@ -103,12 +113,12 @@
         </div>
       </div>
 
-<script>
-  function add_results(response) {
-    for (let i = 0; i < response.length; i++) {
-      if (i == 0) {
-        // At least 1 carousel item needs "active" class
-        var active_carouselHTML = `
+      <script>
+        function add_results(response) {
+          for (let i = 0; i < response.length; i++) {
+            if (i == 0) {
+              // At least 1 carousel item needs "active" class
+              var active_carouselHTML = `
           <div class="carousel-item active">
             <div class="email-details">
               <h4>Email ${i + 1} details</h4>
