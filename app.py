@@ -25,6 +25,7 @@ def upload():
         files = request.files.getlist("file")
         uploaded_files = []
         for file in files:
+            print(file)
             if file.filename == '':
                 continue    # Skip empty filenames
             if file:

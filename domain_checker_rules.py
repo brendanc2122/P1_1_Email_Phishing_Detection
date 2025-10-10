@@ -18,7 +18,7 @@ BRAND_KEYWORDS = ["amazon", "paypal", "azure", "gmail", "icloud", "outlook" "off
     "hdb", "mysingapore", "sit", "np", "nyp", "nus" "ntu", "smu", "sutd", "suss", "moe", "simba", "coursera", "edx", "facebook", "facebookmail", "meta", "twitter"
     "linkedin", "Instagram", "youtube", "Netflix", "yahoo", "nike", "adidas", "puma", "reebok", "underarmour", "walmart", "target", "bestbuy", "costco", "homedepot", "lowes", "ikea"
     "starbucks", "mcdonalds", "burgerking", "kfc", "subway", "dunkindonuts", "pizzahut", "dominos", "chipotle", "tacobell", "wendys", "kohl's", "sephora", "ulta", "macys", "nordstrom"
-    "zara", "hm", "uniqlo", "gap", "forever21", "oldnavy", "bananarepublic", "jcrew", "costco", "wayfair", "overstock", "chewy", "petsmart", "petco", "decathalon", "sportsdirect", "footlocker"]
+    "zara", "hm", "uniqlo", "gap", "forever21", "oldnavy", "bananarepublic", "jcrew", "costco", "wayfair", "overstock", "chewy", "petsmart", "petco", "decathalon", "sportsdirect", "footlocker", "onedrive"]
 
 actions = [
     "action", "secure", "security", "login", "signin", "verify", "update", "confirm", "account",
