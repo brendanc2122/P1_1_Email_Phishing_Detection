@@ -50,14 +50,16 @@ h2 {
   background: #6366f1;
   color: #ffffff;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   font-size: 1.05rem;
   cursor: pointer;
   font-weight: 600;
   transition: background 0.2s, color 0.2s;
-  margin-right: 8px;
+  margin-top: 10px;
+  margin-right: 20px;
+  padding: 2.5px 2.5px;
   display: inline-block;
-  min-width: 80px;
+  min-width: 300px;
   text-align: center;
   font-family: 'Segoe UI', Arial, sans-serif;
 }
@@ -66,21 +68,22 @@ h2 {
 .upload-btn {
   background: #6366f1;
   color: #ffffff;
-  padding:2.5px 2.5px;
+  padding: 2.5px 2.5px;
   border: none;
   border-radius: 6px;
   font-size: 1.05rem;
   cursor: pointer;
   font-weight: 600;
   transition: background 0.2s, color 0.2s;
-  margin-right: 8px;
+  margin-top: 10px;
+  margin-right: 20px;
   display: inline-block;
   min-width: 110px;
   text-align: center;
   font-family: 'Segoe UI', Arial, sans-serif;
 }
 
-.upload-btn .custom-btn:hover {
+.upload-btn .folder-btn .custom-btn:hover {
   background: #4f46e5;
   color: #ffffff;
 }
@@ -89,6 +92,25 @@ h2 {
 input[type="file"] {
   display: inline-block;
 }
+
+.folder-btn {
+  background: #6366f1;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.05rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+  margin-top: 10px;
+  margin-right: 20px;
+  padding: 2.5px 2.5px;
+  display: inline-block;
+  min-width: 300px;
+  text-align: center;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
 
 .result-header {
   display: flex;
@@ -108,7 +130,8 @@ input[type="file"] {
   align-items: center;
 }
 
-#carousel-buttons-left, #carousel-buttons-right {
+#carousel-buttons-left,
+#carousel-buttons-right {
   display: flex;
   justify-content: space-evenly;
   align-items: flex-end;
@@ -119,20 +142,30 @@ input[type="file"] {
   font-size: 0.98em;
   color: #6366f1;
 }
+
 .result-caption {
   font-size: 1.1em;
   margin-bottom: 18px;
   color: #555;
 }
 
-.breakdown, .score-contribution, .threshold-details, .risk-level, .email-details {
+.breakdown,
+.score-contribution,
+.threshold-details,
+.risk-level,
+.email-details {
   background: #fff;
   border-radius: 8px;
   padding: 14px 16px;
   margin-bottom: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
 }
-.breakdown h4, .score-contribution h4, .threshold-details h4, .risk-level h4, .email-details h4 {
+
+.breakdown h4,
+.score-contribution h4,
+.threshold-details h4,
+.risk-level h4,
+.email-details h4 {
   margin: 0 0 8px 0;
   font-size: 1.05em;
   color: #000000;
@@ -142,4 +175,3 @@ input[type="file"] {
     left: -10% !important;
     width: 115% !important;
 } */
-
