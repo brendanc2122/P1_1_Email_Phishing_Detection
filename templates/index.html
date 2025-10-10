@@ -26,10 +26,8 @@
           <input type="file" id="filesInput" class="custom-btn" enctype="multipart/form-data" multiple accept=".txt,.eml">
           <button type="submit" class="upload-btn">Upload</button>
         </center>
-
         <script>
           // Preprocess file upload
-          const test_form = document.getElementById("uploadForm")
           document.getElementById("uploadForm").addEventListener("submit", function (event) {
             event.preventDefault();
             var userData = new FormData();
@@ -42,13 +40,43 @@
               data: userData,
               processData: false,
               contentType: false,
+              // If successful, adds response to element with id test_result
+              success: function (response) {
+                alert("Success")
+                add_results(response)
+              },
+              // Else, show error message
+              error: function (error) {
+                console.log(error);
+              }
+            })
+          })
+        </script>
+      </form>
+      <form id="uploadFolderForm">
+        <center>
+          <input type="file" id="folderInput" class="custom-btn" enctype="multipart/form-data" multiple webkitdirectory>
+          <button type="submit" class="upload-btn">Upload</button>
+        </center>
+        <script>
+          // Preprocess folder upload
+          document.getElementById("uploadFolderForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            var userData = new FormData();
+            var files = document.getElementById("folderInput").files;
+            for (var x = 0; x < files.length; x++) {
+              userData.append('file', files[x]);
+            }
+            $.ajax({
+              type: 'POST',
+              url: '/upload',
+              data: userData,
+              processData: false,
+              contentType: false,
               // If succeessful, adds response to element with id test_result
               success: function (response) {
                 alert("Success")
                 add_results(response)
-                // var response_parts = response.split('|');
-                // document.getElementById("test-score").innerHTML = response_parts[0];
-                // document.getElementById("test-reasons").innerHTML = response_parts[1];
               },
               // Else, show error message
               error: function (error) {
@@ -75,7 +103,6 @@
 
 <script>
   function add_results(response) {
-    console.log(response);
     for (let i = 0; i < response.length; i++) {
       if (i == 0) {
         // At least 1 carousel item needs "active" class
@@ -85,6 +112,8 @@
               <h4>Email ${i+1} details</h4>
               <p><strong>Sender:</strong> ${response[i].domain}</p>
               <p><strong>Subject:</strong> ${response[i].subject}</p>
+              <br>
+              <p>${response[i].body}</p>
             </div>
             <div class="risk-level">
               <h4>Analysis</h4>
@@ -106,6 +135,8 @@
               <h4>Email ${i+1} details</h4>
               <p><strong>Sender:</strong> ${response[i].domain}</p>
               <p><strong>Subject:</strong> ${response[i].subject}</p>
+              <br>
+              <p>${response[i].body}</p>
             </div>
             <div class="risk-level">
               <h4>Analysis</h4>

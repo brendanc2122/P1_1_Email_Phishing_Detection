@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import os
 from preprocess_dataset import DatasetPreprocessor
 from main import PhishingDetector
+import re
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -28,6 +29,9 @@ def upload():
                 continue    # Skip empty filenames
             if file:
                 filename = file.filename
+                # Remove any leading directory structure, in the case of IE or Edge
+                # or upload inside a directory
+                filename = re.sub(r'[^/]*/', "", filename)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 uploaded_files.append(filename)
                 print("file uploaded successfully")

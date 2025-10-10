@@ -109,21 +109,21 @@ class DatasetPreprocessor:
         for raw_email_content in raw_emails_list:
             try: # Try to parse the email
                 msg, subject, sender, domain = self.__extract_features__(raw_email_content)
-                
-                # Append extracted features to their respective lists
-                subjects.append(subject)
-                senders.append(sender)
-                domains.append(domain)
 
-                body = self.__extract_body__(msg)
-                bodies.append(body)
+                if sender and domain and subject: # Sender, domain, subject are all present
+                    # Append extracted features to their respective lists
+                    subjects.append(subject)
+                    senders.append(sender)
+                    domains.append(domain)
+
+                    body = self.__extract_body__(msg)
+                    bodies.append(body)
+                else: # At least one of sender, domain or subject is missing
+                    continue
 
             except Exception as e: # Catch any parsing errors
                 print(f"Error parsing email: {e}")
-                senders.append(None)
-                domains.append(None)
-                subjects.append(None)
-                bodies.append(None)
+                continue
         
         # Create a pandas DataFrame from the email data
         df_emails = pd.DataFrame({
@@ -132,5 +132,11 @@ class DatasetPreprocessor:
             'subject': subjects,
             'body': bodies
         })
+
+        # Warn if some emails were skipped due to missing fields
+        if len(df_emails) != len(raw_emails_list):
+            error_msg = ("Warning: Some emails were skipped due to missing fields."
+                   f"Processed {len(df_emails)} out of {len(raw_emails_list)} emails.")
+            print(error_msg)
 
         return df_emails
