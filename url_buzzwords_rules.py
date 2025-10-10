@@ -459,20 +459,20 @@ def clear_cache():
 # MAIN (quick demo)
 # =============================
 
-if __name__ == "__main__":
-    # Load your JSON whitelist next to this file (like in your screenshot)
-    try:
-        load_trusted_from_json(Path(__file__).with_name("whitelist.json"), replace=True)
-    except Exception as e:
-        print("Whitelist load note:", e)
+# if __name__ == "__main__":
+#     # # Load your JSON whitelist next to this file (like in your screenshot)
+#     # try:
+#     #     load_trusted_from_json(Path(__file__).with_name("whitelist.json"), replace=True)
+#     # except Exception as e:
+#     #     print("Whitelist load note:", e)
 
-    # You can also load safe/suspicious lists if you have them:
-    # load_domain_lists(suspicious=["phishing-site.com","fake-bank.net"], safe=["trusted-site.org"])
+#     # # You can also load safe/suspicious lists if you have them:
+#     # # load_domain_lists(suspicious=["phishing-site.com","fake-bank.net"], safe=["trusted-site.org"])
 
-    subj = "URGENT: Your account will be suspended - Act now!"
-    body = """Verify immediately at hxxp://fake-bank[.]net/login-verify-urgent
-              Use your one-time password: 123456 to confirm."""
-    res = detect_phishing_comprehensive(subj, body)
-    print(res["risk_level"], res["total_risk_score"])
-    for line in res["subject_analysis"] + res["body_analysis"] + res["url_analysis"]:
-        print("-", line)
+#     # subj = "URGENT: Your account will be suspended - Act now!"
+#     # body = """Verify immediately at hxxp://fake-bank[.]net/login-verify-urgent
+#     #           Use your one-time password: 123456 to confirm."""
+#     # res = detect_phishing_comprehensive(subj, body)
+#     # print(res["risk_level"], res["total_risk_score"])
+#     # for line in res["subject_analysis"] + res["body_analysis"] + res["url_analysis"]:
+#     #     print("-", line)
