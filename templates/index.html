@@ -92,7 +92,9 @@
             </div>
             <div class="breakdown">
               <h4>Breakdown (indicators)</h4>
-              <p>${response[i].reasons.join("<br>")}</p>
+               <ul>
+                ${response[i].reasons.map(reason => `<li>${reason}</li>`).join("")}
+              </ul>
             </div>
           </div>
         `;
@@ -102,7 +104,7 @@
           <div class="carousel-item">
             <div class="email-details">
               <h4>Email ${i+1} details</h4>
-              <p><strong>Sender:</strong> ${response[i].sender}</p>
+              <p><strong>Sender:</strong> ${response[i].domain}</p>
               <p><strong>Subject:</strong> ${response[i].subject}</p>
             </div>
             <div class="risk-level">
@@ -111,7 +113,9 @@
             </div>
             <div class="breakdown">
               <h4>Breakdown (indicators)</h4>
-              <p>${response[i].reasons.join("<br>")}</p>
+              <ul>
+                ${response[i].reasons.map(reason => `<li>${reason}</li>`).join("")}
+              </ul>
             </div>
           </div>
         `;

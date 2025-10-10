@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import os
-from preprocess_dataset import create_dataframe_from_group
-import main as phishing_detector
+from preprocess_dataset import DatasetPreprocessor
+from main import PhishingDetector
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -19,7 +19,8 @@ def upload():
     if request.method == "POST":
         if 'file' not in request.files:
             return jsonify({"status": "error", "message": "No file part in the request."}), 400
-        
+
+        # Get the uploaded files
         files = request.files.getlist("file")
         uploaded_files = []
         for file in files:
@@ -30,9 +31,15 @@ def upload():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 uploaded_files.append(filename)
                 print("file uploaded successfully")
-        user_dataframe = create_dataframe_from_group(uploaded_files)
-        detector = phishing_detector.PhishingDetector(user_dataframe)
-        results = detector.analyse()
+        
+        # Preprocess data and save as a Pandas DataFrame
+        user_dataframe = (DatasetPreprocessor(uploaded_files, UPLOAD_FOLDER)
+                          .preprocess_data())
+        
+        # Analyze the DataFrame for phishing detection
+        results = PhishingDetector(user_dataframe).analyse()
+
+        # Return results as JSON response to frontend client
         return jsonify(results)
     
 if __name__ == '__main__':
