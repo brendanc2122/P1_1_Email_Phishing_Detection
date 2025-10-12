@@ -67,8 +67,6 @@ class DatasetPreprocessor:
                         if sender_full and re.search(address_arrow_pattern, sender_full) else "")
         sender = re.sub(remove_address_pattern, "", sender_full) if sender_full else ""
 
-
-        # body = self.__clean_body__(msg.get_payload()) if msg.is_multipart() else self.__clean_body__(msg.get_payload())
         return msg, subject, sender, domain
     
     # Extract the email body, handling multipart emails
