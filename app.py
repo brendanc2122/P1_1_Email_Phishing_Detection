@@ -48,4 +48,4 @@ def upload():
         return jsonify(results)
     
 if __name__ == '__main__':
-    app.run(debug=True) # debug=True enables the reloader and debugger
+    app.run(debug=True) # debug=True enables the reloader and debuggerh

@@ -163,15 +163,6 @@ def load_whitelist(path="whitelist.json"):
         print(f"Error decoding {path}: {e}. Treating whitelist as empty.")
         return set()
 
-#Helper to read sender email from input (for testing purposes)
-def read_sender():
-    """Read a sender email from console and return lowercased trimmed string or None."""
-    s = input("Enter sender email (or press Enter to cancel): ").strip()
-    if s == "":
-        print("No input provided.")
-        return None
-    return s.lower()
-
 #Splits sender email into local part and domain
 def split_sender(email: str):
     """
