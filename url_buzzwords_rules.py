@@ -439,22 +439,3 @@ def batch_analyze(emails: List[Dict]) -> List[Dict]:
 
 def clear_cache():
     domain_cache.clear()
-
-# =============================
-# MAIN (quick demo)
-# =============================
-
-if __name__ == "__main__":
-    try:
-        load_trusted_from_json(Path(__file__).with_name("whitelist.json"), replace=True)
-    except Exception as e:
-        print("Whitelist load note:", e)
-
-    subj = "URGENT: Your account will be suspended - Act now!"
-    body = """Verify immediately at hxxp://fake-bank[.]net/login-verify-urgent
-              Use your one-time password: 123456 to confirm."""
-
-    res = detect_phishing_comprehensive(subj, body)
-    print(res["risk_level"], res["total_risk_score"])
-    for line in res["subject_analysis"] + res["body_analysis"] + res["url_analysis"]:
-        print("-", line)
