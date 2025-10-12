@@ -368,7 +368,7 @@ def check_brand_token(domain: str, WHITELIST: set = None) -> tuple[int, list[str
     return pts, reasons
 
 # 4TH Check for Domain — Brand + action/update tokens/ 1ST CHECK FOR LOCAL PART
-def check_brand_action_domain(domain: str, whitelist: set = None) -> tuple[int, list[str]]:
+def check_brand_action_domain(domain: str) -> tuple[int, list[str]]:
     global BRAND_KEYWORDS, actions
     """
     Heuristic #2 — Detect domains that append "action/update" tokens to brand names
@@ -455,14 +455,11 @@ def check_brand_action_domain(domain: str, whitelist: set = None) -> tuple[int, 
 
 # 5TH Check for Domain — Typosquat detection via edit distance and homoglyphs.
 def check_typosquat_domain(domain: str,
-                           whitelist: set | None = None,
                            brands: list[str] | None = None) -> tuple[int, list[str]]:
     if not domain:
         return 0, ["no domain provided for typosquat check"]
 
     d = domain.strip().lower()
-    if whitelist and d in whitelist:
-        return 0, [f"domain '{d}' is whitelisted (skip typosquat check)"]
 
     labels = d.split(".")
     if len(labels) < 2:
@@ -944,13 +941,13 @@ def calculate_score_domain(sender):
             add_points(pts)
 
         # Detect domains that append "action/update" tokens to brand names
-        pts, happy = check_brand_action_domain(domain, WHITELIST)
+        pts, happy = check_brand_action_domain(domain)
         if pts > 0:
             reasons.append(f"Scam Token appended to official brand domain detected: {happy}, points added = {pts}.")
             add_points(pts)
 
         # Typosquatting (single-character change / small edits)
-        pts, happy = check_typosquat_domain(domain, WHITELIST)  
+        pts, happy = check_typosquat_domain(domain)  
         if pts > 0:
             reasons.append(f"Typosquatting detected: {happy}, points added = {pts}.")
             add_points(pts)
