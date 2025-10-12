@@ -67,11 +67,107 @@ def compile_buzzword_patterns() -> Dict:
     # Categories of context words. They score the *subject* a bit higher
     # than the body later (because scary words in the subject are extra alarming).
     categories = {
-        'urgency': { 'weight': 3, 'words': [ ... ] },
-        'financial_threats': { 'weight': 4, 'words': [ ... ] },
-        'manipulation_prompts': { 'weight': 3.5, 'words': [ ... ] },
-        'impersonation': { 'weight': 4.5, 'words': [ ... ] },
-        'tier1_blacklist': { 'weight': 10, 'words': [ ... ] },
+        'urgency': {
+            'weight': 3,
+            'words': [
+                'urgent','immediate','asap','emergency','critical','deadline',
+                'expires','expiring','time sensitive','act now','limited time',
+                'hurry','rush','quickly','fast','instant','today only','last chance',
+                'final notice',"don't wait",'time is running out',
+                'action required','respond now','respond immediately','verify now',
+                'update now','within 24 hours','within 48 hours','right away',
+                'before it is too late','avoid suspension','avoid deactivation',
+                'final warning','final reminder','immediate attention',
+                'requires attention','take action','time-critical','time critical',
+                'time limited','ends today','offer ends soon','act immediately',
+                'review immediately','confirm immediately','secure immediately',
+                'pay immediately','call immediately','contact immediately',
+                'limited availability','while supplies last','only a few left',
+                'exclusive access','exclusive deal','exclusive offer','special access',
+            ]
+        },
+        'financial_threats': {
+            'weight': 4,
+            'words': [
+                'suspended','blocked','frozen','locked','compromised','breach',
+                'unauthorized','fraudulent','illegal','violation','penalty','fine',
+                'fee','charge','payment failed','declined','overdue','debt','owe',
+                'collection','lawsuit','legal action','court','seizure','garnishment',
+                'bankruptcy','repossession','foreclosure','taxes owed','audit',
+                'refund','rebate','chargeback','billing issue','payment issue',
+                'payment problem','credit card issue','credit card problem',
+                'account suspension','account deactivation','account restricted',
+                'account on hold','limited access','account review',
+                'unusual activity','suspicious activity','security alert',
+                'invoice overdue','outstanding balance','past due','past-due',
+                'settlement required','update billing','update payment method',
+                'payment verification','card declined','card expired','verify payment',
+                'delivery fee','customs fee','shipping fee'
+            ]
+        },
+        'manipulation_prompts': {
+            'weight': 3.5,
+            'words': [
+                'verify','confirm','update','validate','authenticate','click here',
+                'download now','open attachment','free gift','congratulations','winner',
+                'selected','exclusive offer','limited offer','act fast',"don't miss out",
+                'special promotion','bonus','reward','gift card','voucher','coupon',
+                'click link','follow link','link below','see details','more info',
+                'learn more','read more','visit site','visit website','go to site',
+                'go to website','access account','manage account','account settings',
+                'change password','reset password','security settings','update settings',
+                'login','logon','sign on','sign-in','log-in','account login',
+                'account logon','account sign-in','account sign on',
+                'log in','sign in','password reset','password expires',
+                'unlock account','re-activate account',
+                'complete verification','verify your identity','identity verification',
+                'one-time password','otp','2fa','two-factor','multi-factor',
+                'enter code','verification code','security code',
+                'track package','reschedule delivery','view invoice','view document',
+                'approve request','authorize transaction','review details',
+                'confirm your details','confirm information','update information',
+                'contact support','call support','chat with support',
+                'start now','get started','proceed now'
+            ]
+        },
+        'impersonation': {
+            'weight': 4.5,
+            'words': [
+                'security team','support team','account team','fraud department',
+                'billing department','customer service','technical support',
+                'system administrator','it department','security alert',
+                'it security','it help desk','it helpdesk','help desk',
+                'it support','security operations','security operations center','soc',
+                'network operations','administrator','admin team','sysadmin',
+                'compliance team','risk management','accounts payable','payroll',
+                'hr department','bank support','card services','billing team',
+                'collections team','service desk','service center','customer care',
+                'trust and safety','legal department','law enforcement',
+                'police department','federal bureau','internal revenue service','irs',
+                'social security administration','department of motor vehicles','dmv',
+                'united states postal service','usps','shipping department',
+                'delivery team','courier service','parcel service'
+            ]
+        },
+        'tier1_blacklist': {
+            'weight': 10,
+            'words': [
+                # adult / explicit
+                "sex", "sexy", "porn", "pornstar", "pr0n", "xxx", "nude", "nudes",
+                "erotic", "escort", "cam", "camgirl", "camguy", "onlyfans", "ofans",
+                "sugarbaby", "sugardaddy", "milf", "bdsm", "fetish", "asshole", "blowjob", "cum", "cocksuck",
+
+                # piracy / hacking
+                "pirate", "piracy", "warez", "crack", "cracked", "keygen", "serials",
+                "torrent", "leak", "leaker", "leakz", "hack", "hacker", "h4ck",
+                "exploit", "zeroday", "botnet", "stealer", "phish", "scammer", "spammer",
+
+                # urgent / scammy
+                "urgent", "immediate", "asap", "attention", "important", "alert", "alerts",
+                "winner", "winners", "prize", "prizes", "congrats", "lottery", "lotto",
+                "claim", "claims", "reward", "rewards", "bonus", "bonuses", "cash", "money", "rich", "wealth", "million", "billion"
+            ]
+        },
     }
 
     # Compile each category to a single regex that tolerates "log in" / "log-in" / "log_in".
