@@ -1,0 +1,67 @@
+Return-Path: <support@notice-outlook.com>
+Received: from mail.notice-outlook.com (mail.notice-outlook.com [203.0.113.45])
+	by example.com with ESMTPS id 12345ABC
+	for <test@example.com>; Fri, 10 Oct 2025 17:22:00 +0800
+Date: Fri, 10 Oct 2025 17:22:00 +0800
+From: Outlook Security <support@notice-outlook.com>
+Reply-To: no-reply@notice-outlook.com
+To: Test User <test@example.com>
+Message-ID: <20251010-172200-abc123@example.com>
+Subject: URGENT: Your Outlook account is suspended — verify now
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="000outlook-boundary"
+
+--000outlook-boundary
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+Security Alert: Your account has been temporarily suspended due to unusual activity.
+Immediate action required to avoid deactivation.
+
+Please verify your identity and update your account settings now.
+
+Step 1: Open the verification page (defanged):
+hxxps://outlook-secure[.]help/login-verify-urgent?session=7F3A9&step=confirm
+
+(You may also use this short link:)
+http://bit.ly/verify-outlook-secure
+
+Note: Failure to respond within 24 hours may result in permanent account restriction.
+
+One-Time Password (OTP): 834219
+Do NOT share this code with anyone.
+
+Thank you,
+Outlook Security Team
+(Notice: This message was sent from an unattended mailbox.)
+
+
+--000outlook-boundary
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<html>
+  <body style="font-family: Arial, sans-serif; color:#111;">
+    <p><strong>Security Alert:</strong> Your account has been <em>temporarily suspended</em> due to unusual activity.</p>
+    <p><strong>Immediate action required</strong> to avoid deactivation.</p>
+    <p>Please verify your identity and update your account settings now.</p>
+
+    <p><strong>Step 1:</strong> Open the verification page (defanged):<br>
+      <code>hxxps://outlook-secure[.]help/login-verify-urgent?session=7F3A9&amp;step=confirm</code>
+    </p>
+
+    <p>(Or use the short link): <a href="http://bit.ly/verify-outlook-secure">http://bit.ly/verify-outlook-secure</a></p>
+
+    <p><strong>One-Time Password (OTP):</strong> <code>834219</code></p>
+    <p style="color:#b00;"><strong>Do NOT share</strong> this code with anyone.</p>
+
+    <hr>
+    <p style="font-size:12px;color:#666;">
+      Thank you,<br>
+      Outlook Security Team<br>
+      (Notice: This message was sent from an unattended mailbox.)
+    </p>
+  </body>
+</html>
+
+--000outlook-boundary--

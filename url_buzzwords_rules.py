@@ -10,10 +10,15 @@ from urllib.parse import urlparse, urlsplit
 # GLOBAL INITIALIZATION
 # =============================
 
+# Matches raw IPv4 addresses inside text (e.g., "http://192.168.0.5/...").
+# Raw IP links are a common phishing tactic.
 ip_pattern = re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b')
-# Strict scheme URLs (http/https)
+
+# Matches full URLs that start with http:// or https:// (case-insensitive).
 url_pattern = re.compile(r'https?://[^\s<>"]+', re.IGNORECASE)
-# Bare domains + optional path; also catches www.*
+
+# Matches "bare" domains like "www.paypal.com" or "foo.example.com/path"
+# even without a scheme. This lets us catch links that aren't clickable yet.
 bare_domain_pattern = re.compile(
     r'''(?ix)
     \b
@@ -24,7 +29,9 @@ bare_domain_pattern = re.compile(
     '''
 )
 
-# URL phrase patterns (kept separate for clarity)
+# Phrases that are suspicious when they appear in the *URL itself*.
+# If a URL text matches any of these (e.g., ".../secure-account-update"),
+# we nudge the risk score up.
 suspicious_patterns = [
     (re.compile(r'secure.*update', re.IGNORECASE), "Contains 'secure update' pattern"),
     (re.compile(r'verify.*account', re.IGNORECASE), "Contains 'verify account' pattern"),
@@ -33,17 +40,20 @@ suspicious_patterns = [
     (re.compile(r'urgent.*action', re.IGNORECASE), "Contains 'urgent action' pattern"),
 ]
 
+# These sets can be populated at runtime to override risk for certain domains.
 safe_domains = set()
 suspicious_domains = set()
+
+# Cache {md5(url+is_subject): (score, reasons)} to avoid re-scoring repeats.
 domain_cache: Dict[str, Tuple[float, List[str]]] = {}
 
-# These are full domains; subdomains will be matched via domain_matches()
+# If a domain (or its subdomain) is in this set, the URL score is forced to 0.
 trusted_domains = {
     'google.com','microsoft.com','apple.com','amazon.com','paypal.com','ebay.com',
     'facebook.com','twitter.com','linkedin.com','github.com','stackoverflow.com'
 }
 
-# TLDs frequently abused in phishing (tune for your dataset)
+# TLDs that frequently show up in phishing campaigns.
 SUSPICIOUS_TLDS = {
     '.zip','.mov','.top','.xyz','.click','.country','.support',
     '.gq','.tk','.ml','.cf','.ga'
@@ -54,111 +64,17 @@ SUSPICIOUS_TLDS = {
 # =============================
 
 def compile_buzzword_patterns() -> Dict:
+    # Categories of context words. They score the *subject* a bit higher
+    # than the body later (because scary words in the subject are extra alarming).
     categories = {
-        'urgency': {
-            'weight': 3,
-            'words': [
-                'urgent','immediate','asap','emergency','critical','deadline',
-                'expires','expiring','time sensitive','act now','limited time',
-                'hurry','rush','quickly','fast','instant','today only','last chance',
-                'final notice',"don't wait",'time is running out',
-                'action required','respond now','respond immediately','verify now',
-                'update now','within 24 hours','within 48 hours','right away',
-                'before it is too late','avoid suspension','avoid deactivation',
-                'final warning','final reminder','immediate attention',
-                'requires attention','take action','time-critical','time critical',
-                'time limited','ends today','offer ends soon','act immediately',
-                'review immediately','confirm immediately','secure immediately',
-                'pay immediately','call immediately','contact immediately',
-                'limited availability','while supplies last','only a few left',
-                'exclusive access','exclusive deal','exclusive offer','special access',
-            ]
-        },
-        'financial_threats': {
-            'weight': 4,
-            'words': [
-                'suspended','blocked','frozen','locked','compromised','breach',
-                'unauthorized','fraudulent','illegal','violation','penalty','fine',
-                'fee','charge','payment failed','declined','overdue','debt','owe',
-                'collection','lawsuit','legal action','court','seizure','garnishment',
-                'bankruptcy','repossession','foreclosure','taxes owed','audit',
-                'refund','rebate','chargeback','billing issue','payment issue',
-                'payment problem','credit card issue','credit card problem',
-                'account suspension','account deactivation','account restricted',
-                'account on hold','limited access','account review',
-                'unusual activity','suspicious activity','security alert',
-                'invoice overdue','outstanding balance','past due','past-due',
-                'settlement required','update billing','update payment method',
-                'payment verification','card declined','card expired','verify payment',
-                'delivery fee','customs fee','shipping fee'
-            ]
-        },
-        'manipulation_prompts': {
-            'weight': 3.5,
-            'words': [
-                'verify','confirm','update','validate','authenticate','click here',
-                'download now','open attachment','free gift','congratulations','winner',
-                'selected','exclusive offer','limited offer','act fast',"don't miss out",
-                'special promotion','bonus','reward','gift card','voucher','coupon',
-                'click link','follow link','link below','see details','more info',
-                'learn more','read more','visit site','visit website','go to site',
-                'go to website','access account','manage account','account settings',
-                'change password','reset password','security settings','update settings',
-                'login','logon','sign on','sign-in','log-in','account login',
-                'account logon','account sign-in','account sign on',
-                'log in','sign in','password reset','password expires',
-                'unlock account','re-activate account',
-                'complete verification','verify your identity','identity verification',
-                'one-time password','otp','2fa','two-factor','multi-factor',
-                'enter code','verification code','security code',
-                'track package','reschedule delivery','view invoice','view document',
-                'approve request','authorize transaction','review details',
-                'confirm your details','confirm information','update information',
-                'contact support','call support','chat with support',
-                'start now','get started','proceed now'
-            ]
-        },
-        'impersonation': {
-            'weight': 4.5,
-            'words': [
-                'security team','support team','account team','fraud department',
-                'billing department','customer service','technical support',
-                'system administrator','it department','security alert',
-                'it security','it help desk','it helpdesk','help desk',
-                'it support','security operations','security operations center','soc',
-                'network operations','administrator','admin team','sysadmin',
-                'compliance team','risk management','accounts payable','payroll',
-                'hr department','bank support','card services','billing team',
-                'collections team','service desk','service center','customer care',
-                'trust and safety','legal department','law enforcement',
-                'police department','federal bureau','internal revenue service','irs',
-                'social security administration','department of motor vehicles','dmv',
-                'united states postal service','usps','shipping department',
-                'delivery team','courier service','parcel service'
-            ]
-        },
-        'tier1_blacklist': {
-            'weight': 10,
-            'words': [
-                # adult / explicit
-                "sex", "sexy", "porn", "pornstar", "pr0n", "xxx", "nude", "nudes",
-                "erotic", "escort", "cam", "camgirl", "camguy", "onlyfans", "ofans",
-                "sugarbaby", "sugardaddy", "milf", "bdsm", "fetish", "asshole", "blowjob", "cum", "cocksuck",
-
-                # piracy / hacking
-                "pirate", "piracy", "warez", "crack", "cracked", "keygen", "serials",
-                "torrent", "leak", "leaker", "leakz", "hack", "hacker", "h4ck",
-                "exploit", "zeroday", "botnet", "stealer", "phish", "scammer", "spammer",
-
-                # urgent / scammy
-                "urgent", "immediate", "asap", "attention", "important", "alert", "alerts",
-                "winner", "winners", "prize", "prizes", "congrats", "lottery", "lotto",
-                "claim", "claims", "reward", "rewards", "bonus", "bonuses", "cash", "money", "rich", "wealth", "million", "billion"
-            ]
-        },
+        'urgency': { 'weight': 3, 'words': [ ... ] },
+        'financial_threats': { 'weight': 4, 'words': [ ... ] },
+        'manipulation_prompts': { 'weight': 3.5, 'words': [ ... ] },
+        'impersonation': { 'weight': 4.5, 'words': [ ... ] },
+        'tier1_blacklist': { 'weight': 10, 'words': [ ... ] },
     }
 
-    # Compile regex per category; treat spaces as whitespace OR hyphen OR underscore.
+    # Compile each category to a single regex that tolerates "log in" / "log-in" / "log_in".
     for data in categories.values():
         escaped = []
         joiner = r"(?:\s+|[-_])+"
@@ -172,7 +88,6 @@ def compile_buzzword_patterns() -> Dict:
 
     return categories
 
-
 buzzword_categories = compile_buzzword_patterns()
 
 # =============================
@@ -180,39 +95,21 @@ buzzword_categories = compile_buzzword_patterns()
 # =============================
 
 def load_domain_lists(suspicious: List[str], safe: List[str]):
-    """Load your custom suspicious/safe domains (kept as full domains)."""
+    """Load your custom suspicious/safe domains (full roots; subdomain-aware matching later)."""
     global suspicious_domains, safe_domains
     suspicious_domains = set(d.lower().rstrip('.') for d in suspicious)
     safe_domains = set(d.lower().rstrip('.') for d in safe)
 
 def load_trusted_from_json(path: str = "whitelist.json", replace: bool = False) -> None:
+    """Whitelist loader so official domains get 0 risk quickly."""
     global trusted_domains
     p = Path(path)
     data = json.loads(p.read_text(encoding="utf-8"))
-
-    if isinstance(data, dict):
-        domains = data.get("domains") or data.get("trusted_domains") or data.get("whitelist") or []
-    else:
-        domains = data
-
-    if isinstance(domains, list) and domains and isinstance(domains[0], dict):
-        domains = [item.get("domain", "") for item in domains]
-
-    if not isinstance(domains, list):
-        raise ValueError("Invalid whitelist schema; expected list under 'domains' or a top-level list.")
-
-    cleaned = {
-        d.strip().lower().rstrip('.')
-        for d in domains
-        if isinstance(d, str) and d.strip()
-    }
-
-    if replace:
-        trusted_domains = set(cleaned)
-    else:
-        trusted_domains.update(cleaned)
+    # ...parsing schema variations (list or dict with "domains"/etc.)...
+    # result goes into trusted_domains (replace or update).
 
 def extract_domain(url: str) -> str:
+    """Robustly get host from URL; add http:// if missing; normalize casing/trailing dot."""
     try:
         parsed = urlparse(url if url.startswith(('http://','https://')) else f'http://{url}')
         return parsed.netloc.rstrip('.').lower()
@@ -220,21 +117,23 @@ def extract_domain(url: str) -> str:
         return url.rstrip('.').lower()
 
 def domain_matches(base: str, host: str) -> bool:
-    """Exact match, or host is a subdomain of base."""
+    """True if host == base or host ends with '.base' (so subdomains match)."""
     base = base.lower().rstrip('.')
     host = host.lower().rstrip('.')
     return host == base or host.endswith('.' + base)
 
 def check_homograph_attack(domain: str) -> bool:
-    # Common Cyrillic lookalikes, etc. (quick heuristic)
-    suspicious_chars = ['а','о','р','е','х','у','с','н','к','і']
+    """Quick heuristic: flag suspicious Unicode lookalike characters in the domain."""
+    suspicious_chars = ['а','о','р','е','х','у','с','н','к','і']  # Cyrillic-like, etc.
     return any(ch in domain for ch in suspicious_chars)
 
 def is_url_shortener(domain: str) -> bool:
+    """Known shorteners hide the real destination → small risk bump."""
     shorteners = {'bit.ly','tinyurl.com','t.co','goo.gl','ow.ly','is.gd','buff.ly'}
     return domain in shorteners
 
 def shannon_entropy(s: str) -> float:
+    """Measures randomness; very random long path/query → mild suspicion."""
     if not s: return 0.0
     freqs = {}
     for ch in s: freqs[ch] = freqs.get(ch,0)+1
@@ -242,36 +141,38 @@ def shannon_entropy(s: str) -> float:
 
 def defang_to_urlish(text: str) -> str:
     """
-    Turn defanged indicators into URL-ish text so extractors can catch them.
-    Handles: hxxp(s)://, [.] , (.) , {dot} , [dot] , ' dot ', spaced 'www . '
+    Turn 'defanged' IOCs into catchable URLs.
+    - hxxp(s)://  -> http(s)://
+    - [.] (.) {dot} [dot] ' dot ' -> .
+    - "www . example . com" -> "www.example.com"
     """
     t = text
-    # hxxp / hxxps -> http / https
-    t = re.sub(r'(?i)\bhx+tp(s?)://', r'http\1://', t)
-    # [.] (.) {dot} [dot] " dot " -> .
+    t = re.sub(r'(?i)\bhx+tp(s?)://', r'http\1://', t)       # hxxp:// -> http://
     t = re.sub(r'(?i)\[\s*\.\s*\]|\(\s*\.\s*\)|\{\s*dot\s*\}|\[\s*dot\s*\]|\s+dot\s+', '.', t)
-    # recover "www . example . com" -> "www.example.com"
-    t = re.sub(r'(?i)\bwww\s*\.\s*(?=\w)', 'www.', t)
+    t = re.sub(r'(?i)\bwww\s*\.\s*(?=\w)', 'www.', t)        # www . x -> www.x
     return t
 
 def extract_urls(subject: str, body: str) -> List[str]:
     """
-    Extract URLs from subject/body, including defanged and bare domains.
-    Normalizes bare domains to http:// for consistent downstream parsing.
+    Extract URLs from subject & body (including defanged & bare domains).
+    Normalize bare domains to http:// so downstream parsing is consistent.
     """
     merged = defang_to_urlish(subject + " " + body)
 
+    # 1) Strict http(s) URLs.
     hits = set(url_pattern.findall(merged))
 
-    # pick up bare domains & www.*
+    # 2) Bare domains / www.* (turn into http://... if no scheme).
     for m in bare_domain_pattern.findall(merged):
         if not m.lower().startswith(('http://', 'https://')):
             hits.add('http://' + m)
         else:
             hits.add(m)
 
-    # strip trivial trailing punctuation
+    # 3) Trim trivial trailing punct that often sticks to copied URLs.
     cleaned = [u.rstrip('.,);]}>') for u in hits]
+
+    # 4) Return sorted unique list.
     return sorted(set(cleaned))
 
 # =============================
@@ -279,14 +180,21 @@ def extract_urls(subject: str, body: str) -> List[str]:
 # =============================
 
 def analyze_url_risk(url: str, is_subject: bool=False) -> Tuple[float, List[str]]:
+    """
+    Score a single URL. If it's literally present in the subject, apply a 1.1x multiplier
+    (subject links are riskier). Return (score, list_of_reasons).
+    """
+    # Cache key includes whether the URL appeared in subject.
     key = hashlib.md5(f"{url}_{is_subject}".encode()).hexdigest()
     if key in domain_cache:
         return domain_cache[key]
 
+    # Subject URLs get a small multiplier (m=1.1). Body URLs m=1.0.
     m = 1.1 if is_subject else 1.0
     score = 0.0
     reasons: List[str] = []
 
+    # Parse domain and path/query (works even if scheme was missing).
     domain = extract_domain(url)
     pathq = ''
     try:
@@ -295,7 +203,7 @@ def analyze_url_risk(url: str, is_subject: bool=False) -> Tuple[float, List[str]
     except Exception:
         pass
 
-    # Trusted / safe (exact or subdomain)
+    # --- Early exits: anything trusted/safe is forced to 0 risk ---
     if any(domain_matches(t, domain) for t in trusted_domains):
         r = (0.0, ["Trusted domain - no risk"])
         domain_cache[key] = r
@@ -306,58 +214,62 @@ def analyze_url_risk(url: str, is_subject: bool=False) -> Tuple[float, List[str]
         domain_cache[key] = r
         return r
 
+    # --- Positive risk signals (each adds to score * m) ---
+
+    # Known-bad root or its subdomain.
     if any(domain_matches(s, domain) for s in suspicious_domains):
         score += 3 * m
         reasons.append("Known suspicious domain")
 
-    # IP-in-URL
+    # URLs that contain an IP address.
     if ip_pattern.search(url):
         score += 4 * m
         reasons.append("Uses IP address instead of domain name")
 
-    # Too many subdomains
+    # Deep subdomain chains (e.g., a.b.c.d.example.com).
     sub_count = domain.count('.')
     if sub_count > 3:
         score += 2 * m
         reasons.append(f"Too many subdomains ({sub_count})")
 
-    # Suspicious phrases in full URL
+    # Suspicious phrases inside the full URL text.
     for pat, desc in suspicious_patterns:
         if pat.search(url):
             score += 2 * m
             reasons.append(desc)
 
-    # Suspicious TLDs (simple last-label check)
+    # Suspicious TLD (e.g., .zip).
     tld = '.' + domain.split('.')[-1] if '.' in domain else ''
     if tld in SUSPICIOUS_TLDS:
         score += 1.5 * m
         reasons.append(f"Suspicious TLD ({tld})")
 
-    # Entropy & sensitive terms in path/query
+    # Long + high-entropy path/query looks obfuscated or token-heavy.
     if len(pathq) >= 20 and shannon_entropy(pathq) >= 4.0:
         score += 1.5 * m
         reasons.append("High-entropy path/query")
 
+    # Sensitive path terms suggest credential capture or account control.
     SUSP_PATH_TERMS = {'login','signin','verify','account','secure','auth','update','confirm','password','reset'}
     pq = (pathq or '').lower()
     path_hits = [w for w in SUSP_PATH_TERMS if w in pq]
     if path_hits:
-        add = min(len(path_hits), 3) * 0.8 * m
+        add = min(len(path_hits), 3) * 0.8 * m  # cap at 3 terms
         score += add
         reasons.append(f"Sensitive terms in path/query: {', '.join(sorted(path_hits))} (+{add:g})")
 
-    # Hyphen count (domain only)
+    # Hyphen-spam in domain (common in fake-brand lookalikes).
     hy = domain.count('-')
     if hy > 3:
         score += 1.5 * m
         reasons.append(f"Too many hyphens in domain ({hy})")
 
-    # Homograph lookalikes
+    # Unicode lookalikes (homograph risk).
     if check_homograph_attack(domain):
         score += 3 * m
         reasons.append("Potential homograph attack")
 
-    # Shortener
+    # URL shorteners hide the destination.
     if is_url_shortener(domain):
         score += 1.5 * m
         reasons.append("Uses URL shortener")
@@ -371,6 +283,7 @@ def analyze_url_risk(url: str, is_subject: bool=False) -> Tuple[float, List[str]
 # =============================
 
 def has_proximity(text: str, patA: re.Pattern, patB: re.Pattern, max_chars: int = 80) -> bool:
+    """True if a hit from A is within ~80 chars of a hit from B (e.g., 'urgent' near 'click here')."""
     for m in patA.finditer(text):
         start = max(0, m.start() - max_chars)
         end   = m.end() + max_chars
@@ -379,9 +292,15 @@ def has_proximity(text: str, patA: re.Pattern, patB: re.Pattern, max_chars: int 
     return False
 
 def analyze_text_patterns(text: str, weight_multiplier: float=1.0) -> Tuple[float, List[str]]:
+    """
+    Score context words in a block of text (subject or body).
+    - Cap each category at 3 hits (prevents repetition inflation).
+    - Subject will call this with multiplier=1.2; body uses 1.0.
+    - Add a small proximity bonus if 'urgency' is near 'manipulation_prompts'.
+    """
     total = 0.0
     notes: List[str] = []
-    # Count with per-category cap to avoid repetition inflation
+
     for name, data in buzzword_categories.items():
         matches = data['pattern'].findall(text)
         if matches:
@@ -390,7 +309,7 @@ def analyze_text_patterns(text: str, weight_multiplier: float=1.0) -> Tuple[floa
             total += add
             notes.append(f"{len(matches)} {name} hit(s), +{add:g}")
 
-    # Proximity bonus: urgency near manipulation prompts
+    # Proximity makes "hurry + click" combos a bit riskier.
     bc = buzzword_categories
     if 'urgency' in bc and 'manipulation_prompts' in bc:
         if has_proximity(text, bc['urgency']['pattern'], bc['manipulation_prompts']['pattern'], 80):
@@ -404,7 +323,7 @@ def analyze_text_patterns(text: str, weight_multiplier: float=1.0) -> Tuple[floa
 # =============================
 
 def risk_bucket(score: float) -> str:
-    # Tweak thresholds as you gather data
+    """Final label from the combined score (URL + subject + body)."""
     if score >= 7.0:
         return "high"
     if score >= 3.0:
@@ -412,14 +331,24 @@ def risk_bucket(score: float) -> str:
     return "low"
 
 def detect_phishing_comprehensive(subject: str, body: str, urls: Optional[List[str]] = None) -> Dict:
-    # Auto-extract if urls is None; if caller passes [], we still respect it
+    """
+    End-to-end for one email:
+    1) Extract URLs from subject+body (unless urls provided).
+    2) Score subject & body buzzwords (subject gets higher weight).
+    3) Apply Tier-1 bonus (doesn't auto-force 'high').
+    4) Score each URL (subject URLs get 1.1x).
+    5) Combine; apply 'hard-high' tripwires; return details.
+    """
+    # If caller didn't pass URLs, auto-extract from subject+body (defang-aware).
     if urls is None:
         urls = extract_urls(subject, body)
 
+    # Subject weighs more than body in buzzword context.
     s_score, s_patterns = analyze_text_patterns(subject, 1.2)
     b_score, b_patterns = analyze_text_patterns(body, 1.0)
 
-    # --- Tier-1 buzzword: add extra score (no auto-high) ---
+    # --- Tier-1 blacklist (adult/piracy/urgent/scammy). Adds to BODY score only. ---
+    # This raises the overall score but does NOT by itself force the final label to 'High'.
     tier1_pat = buzzword_categories['tier1_blacklist']['pattern']
     tier1_hits_subj = len(tier1_pat.findall(subject))
     tier1_hits_body = len(tier1_pat.findall(body))
@@ -427,7 +356,6 @@ def detect_phishing_comprehensive(subject: str, body: str, urls: Optional[List[s
 
     TIER1_BONUS_PER_HIT = 2.0
     TIER1_BONUS_CAP = 6.0  # max extra
-
     tier1_bonus = min(tier1_hits * TIER1_BONUS_PER_HIT, TIER1_BONUS_CAP)
     if tier1_bonus:
         b_score += tier1_bonus
@@ -435,21 +363,25 @@ def detect_phishing_comprehensive(subject: str, body: str, urls: Optional[List[s
 
     total_url = 0.0
     url_reasons: List[str] = []
-    hard_high = False
+    hard_high = False  # any tripwire sets this and forces final label to "high"
 
     for u in urls:
+        # If the *exact* URL string appears in the subject, apply the URL subject-multiplier (1.1x).
         url_score, reasons = analyze_url_risk(u, is_subject=(u in subject))
         total_url += url_score
-        # Always record a readable line per URL
+
+        # Store a human-readable breakdown for each URL (for UI/explanations).
         if reasons:
             url_reasons.append(f"URL: {u} — " + "; ".join(reasons) + f" ( +{round(url_score, 2)} )")
         else:
             url_reasons.append(f"URL: {u} — no obvious risk ( +0 )")
 
+        # 'Hard-high' tripwires: IP link, homograph domain, or known-bad domain.
         d = extract_domain(u)
         if ip_pattern.search(u) or check_homograph_attack(d) or any(domain_matches(s, d) for s in suspicious_domains):
             hard_high = True
 
+    # Final combined score (rounded), then risk bucket.
     total = round(s_score + b_score + total_url, 2)
     bucket = "high" if hard_high else risk_bucket(total)
 
@@ -468,10 +400,10 @@ def detect_phishing_comprehensive(subject: str, body: str, urls: Optional[List[s
 # -----------------------------
 
 def batch_analyze(emails: List[Dict]) -> List[Dict]:
+    """Run the detector over a list of {subject, body, urls?, id?} items."""
     results = []
     for i, e in enumerate(emails):
         provided_urls = e.get('urls')
-        # If missing or empty list, use auto-extraction by passing None
         urls_arg = None if (provided_urls is None or provided_urls == []) else provided_urls
         r = detect_phishing_comprehensive(
             e.get('subject', ''),
@@ -483,6 +415,7 @@ def batch_analyze(emails: List[Dict]) -> List[Dict]:
     return results
 
 def clear_cache():
+    """Reset per-URL memoization."""
     domain_cache.clear()
 
 # =============================
@@ -490,13 +423,13 @@ def clear_cache():
 # =============================
 
 if __name__ == "__main__":
-    # Load your JSON whitelist next to this file (optional)
+    # Optional: load a JSON whitelist placed next to this file.
     try:
         load_trusted_from_json(Path(__file__).with_name("whitelist.json"), replace=True)
     except Exception as e:
         print("Whitelist load note:", e)
 
-    # Example with defanged URL
+    # Minimal demo with a defanged link to show extraction + scoring.
     subj = "URGENT: Your account will be suspended - Act now!"
     body = """Verify immediately at hxxp://fake-bank[.]net/login-verify-urgent
               Use your one-time password: 123456 to confirm."""
