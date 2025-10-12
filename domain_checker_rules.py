@@ -294,7 +294,7 @@ def check_domain_length(domain: str) -> tuple[int, list[str]]:
       - +1 if any empty label detected (e.g., consecutive dots)
       - Cap total from this check at MAX_POINTS (default 8)
     """
-    # ---------- thresholds (edit these) ----------
+    # ---------- thresholds ----------
     TOTAL_LEN_WARN = 60
     TOTAL_LEN_HIGH = 80
     LABELS_WARN = 6
@@ -362,9 +362,8 @@ def check_brand_token(domain: str, WHITELIST: set = None) -> tuple[int, list[str
 
     for brand in BRAND_KEYWORDS:
         if brand in d:
-            if d not in WHITELIST:
-                pts += 30
-                reasons.append(f"brand token '{brand}' found in suspicious domain '{d}' (+30)")
+            pts += 30
+            reasons.append(f"brand token '{brand}' found in suspicious domain '{d}' (+30)")
 
     return pts, reasons
 
@@ -394,10 +393,6 @@ def check_brand_action_domain(domain: str, whitelist: set = None) -> tuple[int, 
         return 0, ["no domain provided"]
 
     d = domain.strip().lower()
-
-    # whitelist exact-match shortcut
-    if whitelist and d in whitelist:
-        return 0, [f"domain '{d}' is whitelisted (skip brand+action check)"]
 
     pts = 0
     reasons = []
